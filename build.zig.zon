@@ -1,0 +1,12 @@
+.{
+    .name = .zimsgpack,
+    .version = "0.0.0",
+    .fingerprint = 0xb67f9e5d2aefe6a7, // Changing this has security and trust implications.
+    .minimum_zig_version = "0.14.0",
+    .dependencies = .{},
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
