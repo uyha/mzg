@@ -35,14 +35,21 @@ pub fn packIntWithBehavior(
 ) @TypeOf(writer).Error!void {
     const Input = @TypeOf(input);
 
-    if (comptime Input == comptime_int) {
-        return packIntWithBehavior(behavior, writer, @as(RuntimeInt(input), input));
+    switch (@typeInfo(Input)) {
+        .comptime_int => if (input < std.math.minInt(i64) or input > std.math.maxInt(u64)) {
+            @compileError("value of comptime_int exceeds packable range (from -2^63 to 2^64 -1)");
+        },
+        .int => |Int| if (Int.bits > 64) {
+            @compileError("integers with more than 64 bits cannot be packed");
+        },
+        else => @compileError(@typeName(Input) ++ " cannot be packed as an int"),
     }
 
-    if (0 <= input) {
-        if (input <= std.math.maxInt(u7)) {
-            return try writer.writeByte(@intCast(input));
-        }
+    if (-32 <= input and input <= std.math.maxInt(u7)) {
+        return try writer.writeByte(@bitCast(@as(i8, @intCast(input))));
+    }
+
+    if (std.math.maxInt(u7) < input) {
         inline for (.{ u8, u16, u32, u64 }) |T| {
             if (input <= std.math.maxInt(T)) {
                 const converted: T = @intCast(input);
@@ -56,27 +63,23 @@ pub fn packIntWithBehavior(
                 return;
             }
         }
-    } else {
-        if (-32 <= input) {
-            return try writer.writeByte(@bitCast(input));
-        }
-        inline for (.{ i8, i16, i32, i64 }) |T| {
-            if (std.math.minInt(T) <= input) {
-                const converted: T = @intCast(input);
-                try writer.writeByte(marker(T));
-                try writeWithEndian(
-                    behavior.endian,
-                    writer,
-                    @ptrCast(&converted),
-                    @sizeOf(T),
-                );
-                return;
-            }
-        }
+        unreachable;
     }
 
-    try writer.writeByte(marker(Input));
-    try writeWithEndian(behavior.endian, writer, @ptrCast(&input), @sizeOf(Input));
+    inline for (.{ i8, i16, i32, i64 }) |T| {
+        if (std.math.minInt(T) <= input) {
+            const converted: T = @intCast(input);
+            try writer.writeByte(marker(T));
+            try writeWithEndian(
+                behavior.endian,
+                writer,
+                @ptrCast(&converted),
+                @sizeOf(T),
+            );
+            return;
+        }
+    }
+    unreachable;
 }
 
 pub fn packInt(
