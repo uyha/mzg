@@ -3,7 +3,7 @@ const std = @import("std");
 const zimp = @import("root.zig");
 
 pub fn main() !void {
-    const size = 1_000_000;
+    const size = 100_000_000;
 
     var arg_iter = std.process.args();
     _ = arg_iter.next();
@@ -14,10 +14,19 @@ pub fn main() !void {
     else
         .speed;
 
-    const allocator = std.heap.page_allocator;
-    var buffer: std.ArrayListUnmanaged(u8) = .empty;
-    defer buffer.deinit(allocator);
-    try buffer.ensureTotalCapacity(allocator, size * (8 + 1));
+    // const allocator = std.heap.page_allocator;
+    // var buffer: std.ArrayListUnmanaged(u8) = .empty;
+    // defer buffer.deinit(allocator);
+    // try buffer.ensureTotalCapacity(allocator, size * (8 + 1));
+
+    const NullWriter = struct {
+        const Self = @This();
+
+        pub const Error = error{};
+        pub fn writeByte(_: Self, _: u8) Error!void {}
+    };
+
+    const writer: NullWriter = .{};
 
     var timer = try std.time.Timer.start();
     const start = timer.lap();
@@ -27,7 +36,8 @@ pub fn main() !void {
             for (0..size) |_| {
                 try zimp.packIntWithBehavior(
                     .{ .priority = .size },
-                    buffer.writer(allocator),
+                    writer,
+                    // buffer.writer(allocator),
                     std.math.maxInt(u64),
                 );
             }
@@ -36,7 +46,8 @@ pub fn main() !void {
             for (0..size) |_| {
                 try zimp.packIntWithBehavior(
                     .{ .priority = .speed },
-                    buffer.writer(allocator),
+                    writer,
+                    // buffer.writer(allocator),
                     std.math.maxInt(u64),
                 );
             }
