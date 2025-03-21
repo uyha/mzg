@@ -2,14 +2,9 @@ const std = @import("std");
 const builtin = @import("builtin");
 const t = std.testing;
 
-const options = @import("options");
-
-pub const Priority = enum { size, speed };
-
 const Behavior = struct {
     /// The endianess of the input
     endian: std.builtin.Endian = builtin.target.cpu.arch.endian(),
-    priority: Priority,
 };
 
 pub fn packNil(
@@ -24,6 +19,15 @@ pub fn packBool(
     try writer.writeByte(if (value) 0xC3 else 0xC2);
 }
 
+// Originally, the `behavior` parameter contains a `priority` field that specifies if
+// the packing procedure should prioritize for the smallest amount of byte written, or
+// skipping the value checks and just write the bytes according to the type of input.
+// This was done with the assumption that skipping the checks can have some performance
+// gain. However, with some basic benchmarking, skipping the checks hinders the
+// performance when the act of writing the bytes is more costly than the checks (almost
+// always is). Even when the cost of the writing is 0 (a null writer), no statistically
+// significance is found between the `.size` and `.speed` priority. Hence, the
+// optimization for size is chosen to be always the behavior.
 pub fn packIntWithBehavior(
     comptime behavior: Behavior,
     writer: anytype,
@@ -35,40 +39,38 @@ pub fn packIntWithBehavior(
         return packIntWithBehavior(behavior, writer, @as(RuntimeInt(input), input));
     }
 
-    if (comptime behavior.priority == .size) {
-        if (0 <= input) {
-            if (input <= std.math.maxInt(u7)) {
-                return try writer.writeByte(@intCast(input));
+    if (0 <= input) {
+        if (input <= std.math.maxInt(u7)) {
+            return try writer.writeByte(@intCast(input));
+        }
+        inline for (.{ u8, u16, u32, u64 }) |T| {
+            if (input <= std.math.maxInt(T)) {
+                const converted: T = @intCast(input);
+                try writer.writeByte(marker(T));
+                try writeWithEndian(
+                    behavior.endian,
+                    writer,
+                    @ptrCast(&converted),
+                    @sizeOf(T),
+                );
+                return;
             }
-            inline for (.{ u8, u16, u32, u64 }) |T| {
-                if (input <= std.math.maxInt(T)) {
-                    const converted: T = @intCast(input);
-                    try writer.writeByte(marker(T));
-                    try writeWithEndian(
-                        behavior.endian,
-                        writer,
-                        @ptrCast(&converted),
-                        @sizeOf(T),
-                    );
-                    return;
-                }
-            }
-        } else {
-            if (-32 <= input) {
-                return try writer.writeByte(@bitCast(input));
-            }
-            inline for (.{ i8, i16, i32, i64 }) |T| {
-                if (std.math.minInt(T) <= input) {
-                    const converted: T = @intCast(input);
-                    try writer.writeByte(marker(T));
-                    try writeWithEndian(
-                        behavior.endian,
-                        writer,
-                        @ptrCast(&converted),
-                        @sizeOf(T),
-                    );
-                    return;
-                }
+        }
+    } else {
+        if (-32 <= input) {
+            return try writer.writeByte(@bitCast(input));
+        }
+        inline for (.{ i8, i16, i32, i64 }) |T| {
+            if (std.math.minInt(T) <= input) {
+                const converted: T = @intCast(input);
+                try writer.writeByte(marker(T));
+                try writeWithEndian(
+                    behavior.endian,
+                    writer,
+                    @ptrCast(&converted),
+                    @sizeOf(T),
+                );
+                return;
             }
         }
     }
@@ -83,7 +85,6 @@ pub fn packInt(
 ) @TypeOf(writer).Error!void {
     return packIntWithBehavior(.{
         .endian = builtin.target.cpu.arch.endian(),
-        .priority = if (options.priority == .size) .size else .speed,
     }, writer, input);
 }
 
@@ -146,55 +147,45 @@ test "pack" {
         fn expect(
             packer: anytype,
             input: anytype,
-            output: anytype,
+            output: []const u8,
         ) !void {
-            inline for ([_]Priority{ .size, .speed }) |priority| {
-                var buffer: std.ArrayListUnmanaged(u8) = .empty;
-                defer buffer.deinit(t.allocator);
+            var buffer: std.ArrayListUnmanaged(u8) = .empty;
+            defer buffer.deinit(t.allocator);
 
-                const packer_info = @typeInfo(@TypeOf(packer)).@"fn";
+            const packer_info = @typeInfo(@TypeOf(packer)).@"fn";
 
-                switch (packer_info.params.len) {
-                    1 => try @call(.auto, packer, .{
-                        buffer.writer(t.allocator),
-                    }),
-                    2 => try @call(.auto, packer, .{
+            switch (packer_info.params.len) {
+                1 => try @call(.auto, packer, .{
+                    buffer.writer(t.allocator),
+                }),
+                2 => try @call(.auto, packer, .{
+                    buffer.writer(t.allocator),
+                    input,
+                }),
+                3 => try @call(
+                    .auto,
+                    packer,
+                    .{
+                        comptime Behavior{
+                            .endian = builtin.target.cpu.arch.endian(),
+                        },
                         buffer.writer(t.allocator),
                         input,
-                    }),
-                    3 => try @call(
-                        .auto,
-                        packer,
-                        .{
-                            comptime Behavior{
-                                .endian = builtin.target.cpu.arch.endian(),
-                                .priority = priority,
-                            },
-                            buffer.writer(t.allocator),
-                            input,
-                        },
-                    ),
-                    else => @compileError("WTF"),
-                }
+                    },
+                ),
+                else => @compileError("WTF"),
+            }
 
-                const Output = @TypeOf(output);
-                const output_info = @typeInfo(Output);
-                const expected = switch (output_info) {
-                    .@"struct" => if (priority == .size) output[0] else output[1],
-                    else => output,
-                };
-                const result =
-                    t.expect(std.mem.eql(u8, buffer.items, expected));
+            const result = t.expect(std.mem.eql(u8, buffer.items, output));
 
-                if (result) {} else |err| {
-                    if (@typeInfo(@TypeOf(input)) == .int) {
-                        std.debug.print(
-                            "{any} {X:02} != {X:02}\n",
-                            .{ priority, expected, buffer.items },
-                        );
-                    }
-                    return err;
+            if (result) {} else |err| {
+                if (@typeInfo(@TypeOf(input)) == .int) {
+                    std.debug.print(
+                        " {X:02} != {X:02}\n",
+                        .{ output, buffer.items },
+                    );
                 }
+                return err;
             }
         }
     }.expect;
@@ -206,61 +197,31 @@ test "pack" {
     const pInt = packIntWithBehavior;
 
     // u8
-    try expect(pInt, @as(u8, 0), .{ &[_]u8{0x00}, &[_]u8{ 0xCC, 0x00 } });
-    try expect(pInt, @as(u8, 126), .{ &[_]u8{0x7E}, &[_]u8{ 0xCC, 0x7E } });
-    try expect(pInt, @as(u8, 127), .{ &[_]u8{0x7F}, &[_]u8{ 0xCC, 0x7F } });
-    try expect(pInt, @as(u8, 128), .{ &[_]u8{ 0xCC, 0x80 }, &[_]u8{ 0xCC, 0x80 } });
-    try expect(pInt, @as(u8, 255), .{ &[_]u8{ 0xCC, 0xFF }, &[_]u8{ 0xCC, 0xFF } });
+    try expect(pInt, @as(u8, 0), &[_]u8{0x00});
+    try expect(pInt, @as(u8, 126), &[_]u8{0x7E});
+    try expect(pInt, @as(u8, 127), &[_]u8{0x7F});
+    try expect(pInt, @as(u8, 128), &[_]u8{ 0xCC, 0x80 });
+    try expect(pInt, @as(u8, 255), &[_]u8{ 0xCC, 0xFF });
 
     // u16
-    try expect(pInt, @as(u16, 0), .{
-        &[_]u8{0x00},
-        &[_]u8{ 0xCD, 0x00, 0x00 },
-    });
-    try expect(pInt, @as(u16, maxInt(u8)), .{
-        &[_]u8{ 0xCC, 0xFF },
-        &[_]u8{ 0xCD, 0x00, 0xFF },
-    });
+    try expect(pInt, @as(u16, 0), &[_]u8{0x00});
+    try expect(pInt, @as(u16, maxInt(u8)), &[_]u8{ 0xCC, 0xFF });
     try expect(pInt, @as(u16, maxInt(u8) + 1), &[_]u8{ 0xCD, 0x01, 0x00 });
     try expect(pInt, @as(u16, maxInt(u16)), &[_]u8{ 0xCD, 0xFF, 0xFF });
 
     // u32
-    try expect(pInt, @as(u32, 0), .{
-        &[_]u8{0x00},
-        &[_]u8{ 0xCE, 0x00, 0x00, 0x00, 0x00 },
-    });
-    try expect(pInt, @as(u32, maxInt(u8)), .{
-        &[_]u8{ 0xCC, 0xFF },
-        &[_]u8{ 0xCE, 0x00, 0x00, 0x00, 0xFF },
-    });
-    try expect(pInt, @as(u32, maxInt(u16)), .{
-        &[_]u8{ 0xCD, 0xFF, 0xFF },
-        &[_]u8{ 0xCE, 0x00, 0x00, 0xFF, 0xFF },
-    });
+    try expect(pInt, @as(u32, 0), &[_]u8{0x00});
+    try expect(pInt, @as(u32, maxInt(u8)), &[_]u8{ 0xCC, 0xFF });
+    try expect(pInt, @as(u32, maxInt(u16)), &[_]u8{ 0xCD, 0xFF, 0xFF });
     try expect(pInt, @as(u32, maxInt(u16) + 1), &[_]u8{ 0xCE, 0x00, 0x01, 0x00, 0x00 });
     try expect(pInt, @as(u32, maxInt(u32)), &[_]u8{ 0xCE, 0xFF, 0xFF, 0xFF, 0xFF });
 
     // u64
-    try expect(pInt, @as(u64, 0), .{
-        &[_]u8{0x00},
-        &[_]u8{ 0xCF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-    });
-    try expect(pInt, @as(u64, maxInt(u8)), .{
-        &[_]u8{ 0xCC, 0xFF },
-        &[_]u8{ 0xCF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF },
-    });
-    try expect(pInt, @as(u64, maxInt(u16)), .{
-        &[_]u8{ 0xCD, 0xFF, 0xFF },
-        &[_]u8{ 0xCF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF },
-    });
-    try expect(pInt, @as(u64, maxInt(u16) + 1), .{
-        &[_]u8{ 0xCE, 0x00, 0x01, 0x00, 0x00 },
-        &[_]u8{ 0xCF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00 },
-    });
-    try expect(pInt, @as(u64, maxInt(u32)), .{
-        &[_]u8{ 0xCE, 0xFF, 0xFF, 0xFF, 0xFF },
-        &[_]u8{ 0xCF, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF },
-    });
+    try expect(pInt, @as(u64, 0), &[_]u8{0x00});
+    try expect(pInt, @as(u64, maxInt(u8)), &[_]u8{ 0xCC, 0xFF });
+    try expect(pInt, @as(u64, maxInt(u16)), &[_]u8{ 0xCD, 0xFF, 0xFF });
+    try expect(pInt, @as(u64, maxInt(u16) + 1), &[_]u8{ 0xCE, 0x00, 0x01, 0x00, 0x00 });
+    try expect(pInt, @as(u64, maxInt(u32)), &[_]u8{ 0xCE, 0xFF, 0xFF, 0xFF, 0xFF });
     try expect(
         pInt,
         @as(u64, maxInt(u32) + 1),
@@ -272,10 +233,10 @@ test "pack" {
         &[_]u8{ 0xCF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
     );
 
-    try expect(pInt, @as(i8, 0), .{ &[_]u8{0x00}, &[_]u8{ 0xD0, 0x00 } });
-    try expect(pInt, @as(i8, -1), .{ &[_]u8{0xFF}, &[_]u8{ 0xD0, 0xFF } });
-    try expect(pInt, @as(i8, -32), .{ &[_]u8{0xE0}, &[_]u8{ 0xD0, 0xE0 } });
-    try expect(pInt, @as(i8, -32), .{ &[_]u8{0xE0}, &[_]u8{ 0xD0, 0xE0 } });
-    try expect(pInt, @as(i8, 127), .{ &[_]u8{0x7F}, &[_]u8{ 0xD0, 0x7F } });
-    try expect(pInt, @as(i8, -128), .{ &[_]u8{ 0xD0, 0x80 }, &[_]u8{ 0xD0, 0x80 } });
+    try expect(pInt, @as(i8, 0), &[_]u8{0x00});
+    try expect(pInt, @as(i8, -1), &[_]u8{0xFF});
+    try expect(pInt, @as(i8, -32), &[_]u8{0xE0});
+    try expect(pInt, @as(i8, -32), &[_]u8{0xE0});
+    try expect(pInt, @as(i8, 127), &[_]u8{0x7F});
+    try expect(pInt, @as(i8, -128), &[_]u8{ 0xD0, 0x80 });
 }
