@@ -48,7 +48,7 @@ pub fn packIntWithEndian(
         inline for (.{ u8, u16, u32, u64 }) |T| {
             if (input <= std.math.maxInt(T)) {
                 const converted: T = @intCast(input);
-                try writer.writeByte(marker(T));
+                try writer.writeByte(intMarker(T));
                 try writeWithEndian(
                     endian,
                     writer,
@@ -64,7 +64,7 @@ pub fn packIntWithEndian(
     inline for (.{ i8, i16, i32, i64 }) |T| {
         if (std.math.minInt(T) <= input) {
             const converted: T = @intCast(input);
-            try writer.writeByte(marker(T));
+            try writer.writeByte(intMarker(T));
             try writeWithEndian(
                 endian,
                 writer,
@@ -118,8 +118,8 @@ inline fn writeWithEndian(
         },
     }
 }
-fn marker(comptime T: type) u8 {
-    if (comptime @sizeOf(usize) > @sizeOf(u64)) {
+fn intMarker(comptime T: type) u8 {
+    if (comptime T == usize and @sizeOf(usize) > @sizeOf(u64)) {
         @compileError("usize is too large and cannot be packed as an int");
     }
 
