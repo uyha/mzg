@@ -2,11 +2,6 @@ const std = @import("std");
 const builtin = @import("builtin");
 const t = std.testing;
 
-const Behavior = struct {
-    /// The endianess of the input
-    endian: std.builtin.Endian = builtin.target.cpu.arch.endian(),
-};
-
 pub fn packNil(
     writer: anytype,
 ) @TypeOf(writer).Error!void {
@@ -19,17 +14,17 @@ pub fn packBool(
     try writer.writeByte(if (value) 0xC3 else 0xC2);
 }
 
-// Originally, the `behavior` parameter contains a `priority` field that specifies if
-// the packing procedure should prioritize for the smallest amount of byte written, or
-// skipping the value checks and just write the bytes according to the type of input.
-// This was done with the assumption that skipping the checks can have some performance
-// gain. However, with some basic benchmarking, skipping the checks hinders the
-// performance when the act of writing the bytes is more costly than the checks (almost
-// always is). Even when the cost of the writing is 0 (a null writer), no statistically
-// significance is found between the `.size` and `.speed` priority. Hence, the
-// optimization for size is chosen to be always the behavior.
-pub fn packIntWithBehavior(
-    comptime behavior: Behavior,
+// Originally, there was a `behavior` parameter that contains a `priority` field that
+// specifies if the packing procedure should prioritize for the smallest amount of byte
+// written, or skipping the value checks and just write the bytes according to the type
+// of input. This was done with the assumption that skipping the checks can have some
+// performance gain. However, with some basic benchmarking, skipping the checks hinders
+// the performance when the act of writing the bytes is more costly than the checks
+// (almost always is). Even when the cost of the writing is 0 (a null writer), no
+// statistically significance is found between the `.size` and `.speed` priority. Hence,
+// the optimization for size is chosen to always be the behavior.
+pub fn packIntWithEndian(
+    comptime endian: std.builtin.Endian,
     writer: anytype,
     input: anytype,
 ) @TypeOf(writer).Error!void {
@@ -55,7 +50,7 @@ pub fn packIntWithBehavior(
                 const converted: T = @intCast(input);
                 try writer.writeByte(marker(T));
                 try writeWithEndian(
-                    behavior.endian,
+                    endian,
                     writer,
                     @ptrCast(&converted),
                     @sizeOf(T),
@@ -71,7 +66,7 @@ pub fn packIntWithBehavior(
             const converted: T = @intCast(input);
             try writer.writeByte(marker(T));
             try writeWithEndian(
-                behavior.endian,
+                endian,
                 writer,
                 @ptrCast(&converted),
                 @sizeOf(T),
@@ -86,9 +81,7 @@ pub fn packInt(
     writer: anytype,
     input: anytype,
 ) @TypeOf(writer).Error!void {
-    return packIntWithBehavior(.{
-        .endian = builtin.target.cpu.arch.endian(),
-    }, writer, input);
+    return packIntWithEndian(comptime builtin.target.cpu.arch.endian(), writer, input);
 }
 
 fn RuntimeInt(input: comptime_int) type {
@@ -169,9 +162,7 @@ test "pack" {
                     .auto,
                     packer,
                     .{
-                        comptime Behavior{
-                            .endian = builtin.target.cpu.arch.endian(),
-                        },
+                        comptime builtin.target.cpu.arch.endian(),
                         buffer.writer(t.allocator),
                         input,
                     },
@@ -197,7 +188,7 @@ test "pack" {
     try expect(packBool, false, &[_]u8{0xC2});
     try expect(packBool, true, &[_]u8{0xC3});
 
-    const pInt = packIntWithBehavior;
+    const pInt = packIntWithEndian;
 
     // u8
     try expect(pInt, @as(u8, 0), &[_]u8{0x00});
