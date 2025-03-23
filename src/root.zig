@@ -145,6 +145,10 @@ inline fn writeWithEndian(
             @byteSwap(input)
         else
             input,
+        usize => if (comptime endian == .little)
+            @byteSwap(@as(NativeUsize(), input))
+        else
+            @as(NativeUsize(), input),
         else => @compileError(std.fmt.comptimePrint(
             "{s} is not supported by this function",
             .{@typeName(Input)},
@@ -153,20 +157,26 @@ inline fn writeWithEndian(
 
     try writer.writeAll(std.mem.asBytes(&raw));
 }
+fn NativeUsize() type {
+    return switch (@sizeOf(usize)) {
+        @sizeOf(u32) => u32,
+        @sizeOf(u64) => u64,
+        else => @compileError(
+            "usize is only support if it is the same size with either u32 or u64",
+        ),
+    };
+}
 fn intMarker(comptime T: type) u8 {
-    if (comptime T == usize and @sizeOf(usize) > @sizeOf(u64)) {
-        @compileError("usize is too large and cannot be packed as an int");
-    }
-
     return switch (comptime T) {
         u8 => 0xCC,
         u16 => 0xCD,
         u32 => 0xCE,
-        usize, u64 => 0xCF,
+        u64 => 0xCF,
         i8 => 0xD0,
         i16 => 0xD1,
         i32 => 0xD2,
         i64 => 0xD3,
+        usize => intMarker(NativeUsize()),
         else => @compileError(@typeName(T) ++ " cannot be pack as an int"),
     };
 }
