@@ -54,14 +54,8 @@ pub fn packIntWithEndian(
     if (std.math.maxInt(u7) < input) {
         inline for (.{ u8, u16, u32, u64 }) |T| {
             if (input <= std.math.maxInt(T)) {
-                const converted: T = @intCast(input);
                 try writer.writeByte(intMarker(T));
-                try writeWithEndian(
-                    endian,
-                    writer,
-                    @ptrCast(&converted),
-                    @sizeOf(T),
-                );
+                try writeWithEndian(endian, writer, @as(T, @intCast(input)));
                 return;
             }
         }
@@ -70,14 +64,8 @@ pub fn packIntWithEndian(
 
     inline for (.{ i8, i16, i32, i64 }) |T| {
         if (std.math.minInt(T) <= input) {
-            const converted: T = @intCast(input);
             try writer.writeByte(intMarker(T));
-            try writeWithEndian(
-                endian,
-                writer,
-                @ptrCast(&converted),
-                @sizeOf(T),
-            );
+            try writeWithEndian(endian, writer, @as(T, @intCast(input)));
             return;
         }
     }
@@ -116,20 +104,16 @@ pub fn packFloatWithEndian(
 
     switch (comptime Input) {
         comptime_float => {
-            const temp: f64 = input;
-            const Temp = @TypeOf(temp);
             try writer.writeByte(0xCB);
-            try writeWithEndian(endian, writer, @ptrCast(&temp), @sizeOf(Temp));
+            try writeWithEndian(endian, writer, @as(f64, input));
         },
         f16 => {
-            const temp: f32 = input;
-            const Temp = @TypeOf(temp);
             try writer.writeByte(0xCA);
-            try writeWithEndian(endian, writer, @ptrCast(&temp), @sizeOf(Temp));
+            try writeWithEndian(endian, writer, @as(f32, input));
         },
         f32, f64 => {
             try writer.writeByte(if (Input == f32) 0xCA else 0xCB);
-            try writeWithEndian(endian, writer, @ptrCast(&input), @sizeOf(Input));
+            try writeWithEndian(endian, writer, input);
         },
         else => unreachable,
     }
@@ -138,24 +122,36 @@ pub fn packFloat(writer: anytype, input: anytype) @TypeOf(writer).Error!void {
     return packFloatWithEndian(target_endian, writer, input);
 }
 
+// pub fn packStr(writer: anytype, input: []const u8) @TypeOf(writer).Error!void {}
+// pub fn packBin(writer: anytype, input: []const u8) @TypeOf(writer).Error!void {}
+// pub fn packArray(writer: anytype, size: u32) @TypeOf(writer).Error!void {}
+
 inline fn writeWithEndian(
     comptime endian: std.builtin.Endian,
     writer: anytype,
-    ptr: [*]const u8,
-    len: usize,
+    input: anytype,
 ) @TypeOf(writer).Error!void {
-    switch (endian) {
-        .big => {
-            for (0..len) |i| {
-                try writer.writeByte(ptr[i]);
+    const Input = @TypeOf(input);
+    const raw = raw: switch (Input) {
+        f32, f64 => |Float| {
+            const Target = if (Float == f32) u32 else u64;
+            if (comptime endian == .little) {
+                break :raw @byteSwap(@as(Target, @bitCast(input)));
+            } else {
+                break :raw @as(Target, @bitCast(input));
             }
         },
-        .little => {
-            for (0..len) |i| {
-                try writer.writeByte(ptr[len - 1 - i]);
-            }
-        },
-    }
+        u8, u16, u32, u64, i8, i16, i32, i64 => if (comptime endian == .little)
+            @byteSwap(input)
+        else
+            input,
+        else => @compileError(std.fmt.comptimePrint(
+            "{s} is not supported by this function",
+            .{@typeName(Input)},
+        )),
+    };
+
+    try writer.writeAll(std.mem.asBytes(&raw));
 }
 fn intMarker(comptime T: type) u8 {
     if (comptime T == usize and @sizeOf(usize) > @sizeOf(u64)) {
