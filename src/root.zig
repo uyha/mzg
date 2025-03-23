@@ -1,6 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const t = std.testing;
+
+const target_endian = builtin.target.cpu.arch.endian();
 
 pub fn packNil(
     writer: anytype,
@@ -30,15 +31,21 @@ pub fn packIntWithEndian(
 ) @TypeOf(writer).Error!void {
     const Input = @TypeOf(input);
 
-    switch (@typeInfo(Input)) {
+    comptime switch (@typeInfo(Input)) {
         .comptime_int => if (input < std.math.minInt(i64) or input > std.math.maxInt(u64)) {
-            @compileError("value of comptime_int exceeds packable range (from -2^63 to 2^64 -1)");
+            @compileError(std.fmt.comptimePrint(
+                "cannot pack input outside of [-2^63, 2^64 -1], input is {}",
+                .{input},
+            ));
         },
         .int => |Int| if (Int.bits > 64) {
-            @compileError("integers with more than 64 bits cannot be packed");
+            @compileError(std.fmt.comptimePrint(
+                "cannot pack input with more than 64 bits as an int, input has {} bits",
+                .{Int.bits},
+            ));
         },
         else => @compileError(@typeName(Input) ++ " cannot be packed as an int"),
-    }
+    };
 
     if (-32 <= input and input <= std.math.maxInt(u7)) {
         return try writer.writeByte(@bitCast(@as(i8, @intCast(input))));
@@ -81,24 +88,56 @@ pub fn packInt(
     writer: anytype,
     input: anytype,
 ) @TypeOf(writer).Error!void {
-    return packIntWithEndian(comptime builtin.target.cpu.arch.endian(), writer, input);
+    return packIntWithEndian(target_endian, writer, input);
 }
 
-fn RuntimeInt(input: comptime_int) type {
-    if (input >= 0) {
-        inline for (.{ u8, u16, u32, u64 }) |T| {
-            if (input <= std.math.maxInt(T)) {
-                return T;
+pub fn packFloatWithEndian(
+    comptime endian: std.builtin.Endian,
+    writer: anytype,
+    input: anytype,
+) @TypeOf(writer).Error!void {
+    const Input = @TypeOf(input);
+
+    comptime switch (@typeInfo(Input)) {
+        .comptime_float => {
+            // TODO: Not really sure how to check comptime_float if it fits f64, find a
+            // way to check it later
+        },
+        .float => |Float| {
+            if (Float.bits > 64) {
+                @compileError(std.fmt.comptimePrint(
+                    "cannot pack input with more than 64 bits as a float, input has {} bits",
+                    .{Float.bits},
+                ));
             }
-        }
-    } else {
-        inline for (.{ i8, i16, i32, i64 }) |T| {
-            if (std.math.minInt(T) <= input) {
-                return T;
-            }
-        }
+        },
+        else => @compileError(@typeName(Input) ++ " cannot be packed as a float"),
+    };
+
+    switch (comptime Input) {
+        comptime_float => {
+            const temp: f64 = input;
+            const Temp = @TypeOf(temp);
+            try writer.writeByte(0xCB);
+            try writeWithEndian(endian, writer, @ptrCast(&temp), @sizeOf(Temp));
+        },
+        f16 => {
+            const temp: f32 = input;
+            const Temp = @TypeOf(temp);
+            try writer.writeByte(0xCA);
+            try writeWithEndian(endian, writer, @ptrCast(&temp), @sizeOf(Temp));
+        },
+        f32, f64 => {
+            try writer.writeByte(if (Input == f32) 0xCA else 0xCB);
+            try writeWithEndian(endian, writer, @ptrCast(&input), @sizeOf(Input));
+        },
+        else => unreachable,
     }
 }
+pub fn packFloat(writer: anytype, input: anytype) @TypeOf(writer).Error!void {
+    return packFloatWithEndian(target_endian, writer, input);
+}
+
 inline fn writeWithEndian(
     comptime endian: std.builtin.Endian,
     writer: anytype,
@@ -136,54 +175,52 @@ fn intMarker(comptime T: type) u8 {
     };
 }
 
-test "pack" {
+fn expect(
+    packer: anytype,
+    input: anytype,
+    output: []const u8,
+) !void {
+    const t = std.testing;
+
+    var buffer: std.ArrayListUnmanaged(u8) = .empty;
+    defer buffer.deinit(t.allocator);
+
+    const packer_info = @typeInfo(@TypeOf(packer)).@"fn";
+
+    switch (packer_info.params.len) {
+        1 => try @call(.auto, packer, .{
+            buffer.writer(t.allocator),
+        }),
+        2 => try @call(.auto, packer, .{
+            buffer.writer(t.allocator),
+            input,
+        }),
+        3 => try @call(
+            .auto,
+            packer,
+            .{
+                comptime builtin.target.cpu.arch.endian(),
+                buffer.writer(t.allocator),
+                input,
+            },
+        ),
+        else => @compileError("WTF"),
+    }
+
+    const result = t.expect(std.mem.eql(u8, buffer.items, output));
+
+    if (result) {} else |err| {
+        std.debug.print(
+            "{} {X:02} != {X:02}\n",
+            .{ input, output, buffer.items },
+        );
+        return err;
+    }
+}
+
+test "pack integrals" {
     const maxInt = std.math.maxInt;
     const minInt = std.math.minInt;
-
-    const expect = struct {
-        fn expect(
-            packer: anytype,
-            input: anytype,
-            output: []const u8,
-        ) !void {
-            var buffer: std.ArrayListUnmanaged(u8) = .empty;
-            defer buffer.deinit(t.allocator);
-
-            const packer_info = @typeInfo(@TypeOf(packer)).@"fn";
-
-            switch (packer_info.params.len) {
-                1 => try @call(.auto, packer, .{
-                    buffer.writer(t.allocator),
-                }),
-                2 => try @call(.auto, packer, .{
-                    buffer.writer(t.allocator),
-                    input,
-                }),
-                3 => try @call(
-                    .auto,
-                    packer,
-                    .{
-                        comptime builtin.target.cpu.arch.endian(),
-                        buffer.writer(t.allocator),
-                        input,
-                    },
-                ),
-                else => @compileError("WTF"),
-            }
-
-            const result = t.expect(std.mem.eql(u8, buffer.items, output));
-
-            if (result) {} else |err| {
-                if (@typeInfo(@TypeOf(input)) == .int) {
-                    std.debug.print(
-                        "{} {X:02} != {X:02}\n",
-                        .{ input, output, buffer.items },
-                    );
-                }
-                return err;
-            }
-        }
-    }.expect;
 
     try expect(packNil, {}, &[_]u8{0xC0});
     try expect(packBool, false, &[_]u8{0xC2});
@@ -306,5 +343,28 @@ test "pack" {
         pInt,
         @as(i64, minInt(i64)),
         &[_]u8{ 0xD3, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+    );
+}
+
+test "pack floats" {
+    try expect(
+        packFloat,
+        @as(f16, 1.0),
+        &[_]u8{ 0xCA, 0x3F, 0x80, 0x00, 0x00 },
+    );
+    try expect(
+        packFloat,
+        @as(f32, 1.0),
+        &[_]u8{ 0xCA, 0x3F, 0x80, 0x00, 0x00 },
+    );
+    try expect(
+        packFloat,
+        1.0,
+        &[_]u8{ 0xCB, 0x3F, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+    );
+    try expect(
+        packFloat,
+        @as(f64, 1.0),
+        &[_]u8{ 0xCB, 0x3F, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
     );
 }
