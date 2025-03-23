@@ -138,6 +138,7 @@ fn intMarker(comptime T: type) u8 {
 
 test "pack" {
     const maxInt = std.math.maxInt;
+    const minInt = std.math.minInt;
 
     const expect = struct {
         fn expect(
@@ -175,8 +176,8 @@ test "pack" {
             if (result) {} else |err| {
                 if (@typeInfo(@TypeOf(input)) == .int) {
                     std.debug.print(
-                        " {X:02} != {X:02}\n",
-                        .{ output, buffer.items },
+                        "{} {X:02} != {X:02}\n",
+                        .{ input, output, buffer.items },
                     );
                 }
                 return err;
@@ -230,7 +231,80 @@ test "pack" {
     try expect(pInt, @as(i8, 0), &[_]u8{0x00});
     try expect(pInt, @as(i8, -1), &[_]u8{0xFF});
     try expect(pInt, @as(i8, -32), &[_]u8{0xE0});
-    try expect(pInt, @as(i8, -32), &[_]u8{0xE0});
-    try expect(pInt, @as(i8, 127), &[_]u8{0x7F});
-    try expect(pInt, @as(i8, -128), &[_]u8{ 0xD0, 0x80 });
+    try expect(pInt, @as(i8, maxInt(i8)), &[_]u8{0x7F});
+    try expect(pInt, @as(i8, minInt(i8)), &[_]u8{ 0xD0, 0x80 });
+
+    try expect(pInt, @as(i16, 0), &[_]u8{0x00});
+    try expect(pInt, @as(i16, -1), &[_]u8{0xFF});
+    try expect(pInt, @as(i16, -32), &[_]u8{0xE0});
+    try expect(pInt, @as(i16, maxInt(i8)), &[_]u8{0x7F});
+    try expect(pInt, @as(i16, minInt(i8)), &[_]u8{ 0xD0, 0x80 });
+    try expect(pInt, @as(i16, maxInt(i8) + 1), &[_]u8{ 0xCC, 0x80 });
+    try expect(pInt, @as(i16, minInt(i8) - 1), &[_]u8{ 0xD1, 0xFF, 0x7F });
+    try expect(pInt, @as(i16, maxInt(i16)), &[_]u8{ 0xCD, 0x7F, 0xFF });
+    try expect(pInt, @as(i16, minInt(i16)), &[_]u8{ 0xD1, 0x80, 0x00 });
+
+    try expect(pInt, @as(i32, 0), &[_]u8{0x00});
+    try expect(pInt, @as(i32, -1), &[_]u8{0xFF});
+    try expect(pInt, @as(i32, -32), &[_]u8{0xE0});
+    try expect(pInt, @as(i32, maxInt(i8)), &[_]u8{0x7F});
+    try expect(pInt, @as(i32, minInt(i8)), &[_]u8{ 0xD0, 0x80 });
+    try expect(pInt, @as(i32, maxInt(i8) + 1), &[_]u8{ 0xCC, 0x80 });
+    try expect(pInt, @as(i32, minInt(i8) - 1), &[_]u8{ 0xD1, 0xFF, 0x7F });
+    try expect(pInt, @as(i32, maxInt(i16)), &[_]u8{ 0xCD, 0x7F, 0xFF });
+    try expect(pInt, @as(i32, minInt(i16)), &[_]u8{ 0xD1, 0x80, 0x00 });
+    try expect(pInt, @as(i32, maxInt(i16) + 1), &[_]u8{ 0xCD, 0x80, 0x00 });
+    try expect(pInt, @as(i32, minInt(i16) - 1), &[_]u8{ 0xD2, 0xFF, 0xFF, 0x7F, 0xFF });
+    try expect(
+        pInt,
+        @as(i32, maxInt(i32)),
+        &[_]u8{ 0xCE, 0x7F, 0xFF, 0xFF, 0xFF },
+    );
+    try expect(
+        pInt,
+        @as(i32, minInt(i32)),
+        &[_]u8{ 0xD2, 0x80, 0x00, 0x00, 0x00 },
+    );
+
+    try expect(pInt, @as(i64, 0), &[_]u8{0x00});
+    try expect(pInt, @as(i64, -1), &[_]u8{0xFF});
+    try expect(pInt, @as(i64, -32), &[_]u8{0xE0});
+    try expect(pInt, @as(i64, maxInt(i8)), &[_]u8{0x7F});
+    try expect(pInt, @as(i64, minInt(i8)), &[_]u8{ 0xD0, 0x80 });
+    try expect(pInt, @as(i64, maxInt(i8) + 1), &[_]u8{ 0xCC, 0x80 });
+    try expect(pInt, @as(i64, minInt(i8) - 1), &[_]u8{ 0xD1, 0xFF, 0x7F });
+    try expect(pInt, @as(i64, maxInt(i16)), &[_]u8{ 0xCD, 0x7F, 0xFF });
+    try expect(pInt, @as(i64, minInt(i16)), &[_]u8{ 0xD1, 0x80, 0x00 });
+    try expect(pInt, @as(i64, maxInt(i16) + 1), &[_]u8{ 0xCD, 0x80, 0x00 });
+    try expect(pInt, @as(i64, minInt(i16) - 1), &[_]u8{ 0xD2, 0xFF, 0xFF, 0x7F, 0xFF });
+    try expect(
+        pInt,
+        @as(i64, maxInt(i32)),
+        &[_]u8{ 0xCE, 0x7F, 0xFF, 0xFF, 0xFF },
+    );
+    try expect(
+        pInt,
+        @as(i64, minInt(i32)),
+        &[_]u8{ 0xD2, 0x80, 0x00, 0x00, 0x00 },
+    );
+    try expect(
+        pInt,
+        @as(i64, maxInt(i32) + 1),
+        &[_]u8{ 0xCE, 0x80, 0x00, 0x00, 0x00 },
+    );
+    try expect(
+        pInt,
+        @as(i64, minInt(i32) - 1),
+        &[_]u8{ 0xD3, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F, 0xFF, 0xFF, 0xFF },
+    );
+    try expect(
+        pInt,
+        @as(i64, maxInt(i64)),
+        &[_]u8{ 0xCF, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    );
+    try expect(
+        pInt,
+        @as(i64, minInt(i64)),
+        &[_]u8{ 0xD3, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+    );
 }
