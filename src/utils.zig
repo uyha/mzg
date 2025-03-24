@@ -73,21 +73,23 @@ pub fn expect(
     };
 
     if (result) {} else |err| {
-        if (Expected == []const u8) {
-            const diff_index = std.mem.indexOfDiff(u8, expected, output.items).?;
-            if (Input != []const u8) {
-                std.debug.print("input {any}\n", .{input});
-            }
-            std.debug.print("difference at {any}\n", .{diff_index});
-            std.debug.print("expected: {X:02}\n", .{expected});
-            std.debug.print("ouput: {X:02}\n", .{output.items});
-            std.debug.print(
-                "expected: {X:02} != output: {X:02}\n",
-                .{ expected[diff_index], output.items[diff_index] },
-            );
-        } else {
-            std.debug.print("expected: {any}\n", .{expected});
-            std.debug.print("ouput: {any}\n", .{output.items});
+        switch (@typeInfo(Expected)) {
+            .pointer => {
+                if (Input != []const u8) {
+                    std.debug.print("input {any}\n", .{input});
+                }
+                const diff_index = std.mem.indexOfDiff(u8, expected, output.items).?;
+                std.debug.print("expected: {X:02}\n", .{expected});
+                std.debug.print("ouput:    {X:02}\n", .{output.items});
+                std.debug.print(
+                    "expected[{0:}]: {1X:02} != output[{0:}]: {2X:02}\n",
+                    .{ diff_index, expected[diff_index], output.items[diff_index] },
+                );
+            },
+            else => {
+                std.debug.print("expected: {any}\n", .{expected});
+                std.debug.print("ouput: {any}\n", .{output.items});
+            },
         }
         return err;
     }
