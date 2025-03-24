@@ -4,10 +4,10 @@ const builtin = @import("builtin");
 const utils = @import("utils.zig");
 const asBigEndianBytes = utils.asBigEndianBytes;
 
-pub fn Error(WriterError: type) type {
+pub fn PackError(WriterError: type) type {
     return WriterError || error{BinaryTooLong};
 }
-pub fn packBin(writer: anytype, input: []const u8) Error(@TypeOf(writer).Error)!void {
+pub fn packBin(writer: anytype, input: []const u8) PackError(@TypeOf(writer).Error)!void {
     const target_endian = comptime builtin.target.cpu.arch.endian();
 
     switch (input.len) {

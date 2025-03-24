@@ -15,10 +15,10 @@ pub const Ext = struct {
         return .{ .type = @"type", .size = size };
     }
 };
-pub fn Error(WriterError: type) type {
+pub fn PackError(WriterError: type) type {
     return WriterError || error{ExtTooLong};
 }
-pub fn packExt(writer: anytype, ext: Ext) Error(@TypeOf(writer).Error)!void {
+pub fn packExt(writer: anytype, ext: Ext) PackError(@TypeOf(writer).Error)!void {
     switch (ext.size) {
         1 => try writer.writeAll(&[2]u8{ 0xD4, @bitCast(ext.type) }),
         2 => try writer.writeAll(&[2]u8{ 0xD5, @bitCast(ext.type) }),

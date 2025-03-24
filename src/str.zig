@@ -6,10 +6,10 @@ const target_endian = builtin.target.cpu.arch.endian();
 const utils = @import("utils.zig");
 const asBigEndianBytes = utils.asBigEndianBytes;
 
-pub fn Error(WriterError: type) type {
+pub fn PackError(WriterError: type) type {
     return WriterError || error{StringTooLong};
 }
-pub fn packStr(writer: anytype, input: []const u8) Error(@TypeOf(writer).Error)!void {
+pub fn packStr(writer: anytype, input: []const u8) PackError(@TypeOf(writer).Error)!void {
     switch (input.len) {
         0...31 => {
             try writer.writeByte(0b1010_0000 | @as(u8, @intCast(input.len)));

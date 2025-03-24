@@ -6,10 +6,10 @@ const builtin = @import("builtin");
 const utils = @import("utils.zig");
 const asBigEndianBytes = utils.asBigEndianBytes;
 
-pub fn Error(WriterError: type) type {
+pub fn PackError(WriterError: type) type {
     return WriterError || error{ArrayTooLong};
 }
-pub fn packArray(writer: anytype, size: usize) Error(@TypeOf(writer).Error)!void {
+pub fn packArray(writer: anytype, size: usize) PackError(@TypeOf(writer).Error)!void {
     const target_endian = comptime builtin.target.cpu.arch.endian();
 
     switch (size) {
