@@ -46,7 +46,7 @@ pub fn packIntWithEndian(
         inline for (.{ u8, u16, u32, u64 }) |T| {
             if (input <= std.math.maxInt(T)) {
                 try writer.writeAll(& //
-                    [_]u8{intMarker(T)} //marker
+                    [_]u8{marker(T)} //marker
                     ++ asBigEndianBytes(endian, @as(T, @intCast(input))) // value
                 );
                 return;
@@ -58,7 +58,7 @@ pub fn packIntWithEndian(
     inline for (.{ i8, i16, i32, i64 }) |T| {
         if (std.math.minInt(T) <= input) {
             try writer.writeAll(& //
-                [_]u8{intMarker(T)} //marker
+                [_]u8{marker(T)} //marker
                 ++ asBigEndianBytes(endian, @as(T, @intCast(input))) // value
             );
             return;
@@ -75,7 +75,7 @@ pub fn packInt(
     return packIntWithEndian(target_endian, writer, input);
 }
 
-fn intMarker(comptime T: type) u8 {
+fn marker(comptime T: type) u8 {
     return switch (comptime T) {
         u8 => 0xCC,
         u16 => 0xCD,
@@ -85,7 +85,7 @@ fn intMarker(comptime T: type) u8 {
         i16 => 0xD1,
         i32 => 0xD2,
         i64 => 0xD3,
-        usize => intMarker(NativeUsize()),
+        usize => marker(NativeUsize()),
         else => @compileError(@typeName(T) ++ " cannot be pack as an int"),
     };
 }
