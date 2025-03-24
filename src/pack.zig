@@ -73,15 +73,11 @@ pub fn Packer(comptime behavior: Behavior, comptime Writer: type) type {
                         return value.zmgpPack(self);
                     }
 
-                    if (info.tag_type) |Tag| {
-                        inline for (info.fields) |field| {
-                            if (value == @field(Tag, field.name)) {
-                                try self.pack(@field(Tag, field.name));
-                                try self.pack(@field(value, field.name));
-                                return;
-                            }
-                        } else {
-                            unreachable;
+                    if (info.tag_type != null) {
+                        switch (value) {
+                            inline else => |payload, tag| return self.pack(
+                                .{ tag, payload },
+                            ),
                         }
                     } else {
                         @compileError("Cannot pack untagged union '" ++ @typeName(Value) ++ "'");

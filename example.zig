@@ -9,13 +9,7 @@ pub fn main() !void {
         .skip_null = true,
     }, buffer.writer(allocator));
 
-    const S = struct {
-        @"1": ?u16 = null,
-        b: struct {
-            @"1": u16 = 1,
-        } = .{},
-    };
-    try packer.pack(S{});
+    try packer.pack(union(enum) { a: u16, b: u32 }{ .b = 16 });
 
     std.debug.print("{X:02}\n", .{buffer.items});
 }
