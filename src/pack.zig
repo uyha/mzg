@@ -212,7 +212,7 @@ pub fn Packer(comptime behavior: Behavior, comptime Writer: type) type {
                         else => return self.pack(value.*),
                     },
                     .many, .slice => {
-                        if (ptr.size == .many and ptr.sentinel == null) {
+                        if (ptr.size == .many and ptr.sentinel() == null) {
                             @compileError("Cannot pack '" ++ @typeName(Value) ++ "' without sentinel");
                         }
 
