@@ -3,10 +3,10 @@ const maxInt = std.math.maxInt;
 
 const builtin = @import("builtin");
 
-const utils = @import("utils.zig");
+const utils = @import("../utils.zig");
 const asBigEndianBytes = utils.asBigEndianBytes;
 
-const PackError = @import("error.zig").PackError;
+const PackError = @import("../error.zig").PackError;
 
 pub fn packMap(writer: anytype, size: usize) PackError(@TypeOf(writer))!void {
     const target_endian = comptime builtin.target.cpu.arch.endian();

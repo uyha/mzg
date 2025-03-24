@@ -3,10 +3,10 @@ const std = @import("std");
 const builtin = @import("builtin");
 const target_endian = builtin.target.cpu.arch.endian();
 
-const utils = @import("utils.zig");
+const utils = @import("../utils.zig");
 const asBigEndianBytes = utils.asBigEndianBytes;
 
-const PackError = @import("error.zig").PackError;
+const PackError = @import("../error.zig").PackError;
 
 pub fn packStr(writer: anytype, input: []const u8) PackError(@TypeOf(writer))!void {
     switch (input.len) {

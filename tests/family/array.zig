@@ -1,5 +1,5 @@
 test "packArray" {
-    const expect = @import("utils.zig").expect;
+    const expect = @import("../utils.zig").expect;
 
     const maxInt = @import("std").math.maxInt;
     const packArray = @import("zmgp").packArray;

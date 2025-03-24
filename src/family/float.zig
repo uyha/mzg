@@ -2,10 +2,10 @@ const std = @import("std");
 
 const builtin = @import("builtin");
 
-const utils = @import("utils.zig");
+const utils = @import("../utils.zig");
 const asBigEndianBytes = utils.asBigEndianBytes;
 
-const PackError = @import("error.zig").PackError;
+const PackError = @import("../error.zig").PackError;
 
 pub fn packFloatWithEndian(
     comptime endian: std.builtin.Endian,
