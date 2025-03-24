@@ -1,6 +1,8 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
+const maxInt = std.math.maxInt;
+
 const target_endian = builtin.target.cpu.arch.endian();
 
 pub fn packNil(
@@ -122,9 +124,69 @@ pub fn packFloat(writer: anytype, input: anytype) @TypeOf(writer).Error!void {
     return packFloatWithEndian(target_endian, writer, input);
 }
 
-// pub fn packStr(writer: anytype, input: []const u8) @TypeOf(writer).Error!void {}
-// pub fn packBin(writer: anytype, input: []const u8) @TypeOf(writer).Error!void {}
-// pub fn packArray(writer: anytype, size: u32) @TypeOf(writer).Error!void {}
+pub fn PackStrError(WriterError: type) type {
+    return WriterError || error{StringTooLong};
+}
+pub fn packStr(writer: anytype, input: []const u8) PackStrError(@TypeOf(writer).Error)!void {
+    const Error = PackStrError(@TypeOf(writer).Error);
+    switch (input.len) {
+        0...31 => {
+            try writer.writeByte(0b1010_0000 | @as(u8, @intCast(input.len)));
+        },
+        32...std.math.maxInt(u8) => |len| {
+            try writer.writeAll(&[_]u8{ 0xD9, @as(u8, @intCast(len)) });
+        },
+        std.math.maxInt(u8) + 1...std.math.maxInt(u16) => |len| {
+            try writer.writeByte(0xDA);
+            try writeWithEndian(target_endian, writer, @as(u16, @intCast(len)));
+        },
+        std.math.maxInt(u16) + 1...std.math.maxInt(u32) => |len| {
+            try writer.writeByte(0xDB);
+            try writeWithEndian(target_endian, writer, @as(u32, @intCast(len)));
+        },
+        else => return Error.StringTooLong,
+    }
+    try writer.writeAll(input);
+}
+pub fn PackBinError(WriterError: type) type {
+    return WriterError || error{BinaryTooLong};
+}
+pub fn packBin(writer: anytype, input: []const u8) PackBinError(@TypeOf(writer).Error)!void {
+    const Error = PackBinError(@TypeOf(writer).Error);
+    switch (input.len) {
+        0...std.math.maxInt(u8) => |len| {
+            try writer.writeAll(&[_]u8{ 0xC4, @as(u8, @intCast(len)) });
+        },
+        std.math.maxInt(u8) + 1...std.math.maxInt(u16) => |len| {
+            try writer.writeByte(0xC5);
+            try writeWithEndian(target_endian, writer, @as(u16, @intCast(len)));
+        },
+        std.math.maxInt(u16) + 1...std.math.maxInt(u32) => |len| {
+            try writer.writeByte(0xC6);
+            try writeWithEndian(target_endian, writer, @as(u32, @intCast(len)));
+        },
+        else => return Error.BinaryTooLong,
+    }
+    try writer.writeAll(input);
+}
+pub fn PackArrayError(WriterError: type) type {
+    return WriterError || error{ArrayTooLong};
+}
+pub fn packArray(writer: anytype, size: usize) PackArrayError(@TypeOf(writer).Error)!void {
+    const Error = PackArrayError(@TypeOf(writer).Error);
+    switch (size) {
+        0...15 => |len| try writer.writeByte(0b1001_0000 | @as(u8, @intCast(len))),
+        16...maxInt(u16) => |len| {
+            try writer.writeByte(0xDC);
+            try writeWithEndian(target_endian, writer, @as(u16, @intCast(len)));
+        },
+        maxInt(u16) + 1...maxInt(u32) => |len| {
+            try writer.writeByte(0xDD);
+            try writeWithEndian(target_endian, writer, @as(u32, @intCast(len)));
+        },
+        else => return Error.ArrayTooLong,
+    }
+}
 
 inline fn writeWithEndian(
     comptime endian: std.builtin.Endian,
@@ -184,48 +246,62 @@ fn intMarker(comptime T: type) u8 {
 fn expect(
     packer: anytype,
     input: anytype,
-    output: []const u8,
+    expected: anytype,
 ) !void {
+    const Input = @TypeOf(input);
+    const Expected = @TypeOf(expected);
+
     const t = std.testing;
 
-    var buffer: std.ArrayListUnmanaged(u8) = .empty;
-    defer buffer.deinit(t.allocator);
+    var output: std.ArrayListUnmanaged(u8) = .empty;
+    defer output.deinit(t.allocator);
 
     const packer_info = @typeInfo(@TypeOf(packer)).@"fn";
 
-    switch (packer_info.params.len) {
-        1 => try @call(.auto, packer, .{
-            buffer.writer(t.allocator),
+    const returned = switch (packer_info.params.len) {
+        1 => @call(.auto, packer, .{
+            output.writer(t.allocator),
         }),
-        2 => try @call(.auto, packer, .{
-            buffer.writer(t.allocator),
+        2 => @call(.auto, packer, .{
+            output.writer(t.allocator),
             input,
         }),
-        3 => try @call(
+        3 => @call(
             .auto,
             packer,
             .{
                 comptime builtin.target.cpu.arch.endian(),
-                buffer.writer(t.allocator),
+                output.writer(t.allocator),
                 input,
             },
         ),
         else => @compileError("WTF"),
-    }
+    };
 
-    const result = t.expect(std.mem.eql(u8, buffer.items, output));
+    const result = switch (@typeInfo(Expected)) {
+        .error_set => t.expectEqualDeep(expected, returned),
+        else => t.expectEqualDeep(expected, output.items),
+    };
 
     if (result) {} else |err| {
-        std.debug.print(
-            "{} {X:02} != {X:02}\n",
-            .{ input, output, buffer.items },
-        );
+        if (Expected == []const u8) {
+            const diff_index = std.mem.indexOfDiff(u8, expected, output.items).?;
+            if (Input != []const u8) {
+                std.debug.print("input {any}\n", .{input});
+            }
+            std.debug.print("difference at {any}\n", .{diff_index});
+            std.debug.print("expected: {X:02}\n", .{expected});
+            std.debug.print("ouput: {X:02}\n", .{output.items});
+            std.debug.print(
+                "expected: {X:02} != output: {X:02}\n",
+                .{ expected[diff_index], output.items[diff_index] },
+            );
+        }
         return err;
     }
 }
 
 test "pack integrals" {
-    const maxInt = std.math.maxInt;
     const minInt = std.math.minInt;
 
     try expect(packNil, {}, &[_]u8{0xC0});
@@ -373,4 +449,61 @@ test "pack floats" {
         @as(f64, 1.0),
         &[_]u8{ 0xCB, 0x3F, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
     );
+}
+
+test "pack str and bin" {
+    // Cannot actually test for 2 ^ 32 long string or bin since the compilation just
+    // freezes
+
+    try expect(
+        packStr,
+        "1234",
+        &[_]u8{ 0xA4, 0x31, 0x32, 0x33, 0x34 },
+    );
+    try expect(
+        packStr,
+        &[1]u8{0x31} ** std.math.maxInt(u8),
+        &([_]u8{ 0xD9, 0xFF } ++ [1]u8{0x31} ** std.math.maxInt(u8)),
+    );
+    try expect(
+        packStr,
+        &[1]u8{0x31} ** std.math.maxInt(u16),
+        &([_]u8{ 0xDA, 0xFF, 0xFF } ++ [1]u8{0x31} ** std.math.maxInt(u16)),
+    );
+    try expect(
+        packStr,
+        &[1]u8{0x31} ** (std.math.maxInt(u16) + 1),
+        &([_]u8{ 0xDB, 0x00, 0x01, 0x00, 0x00 } ++ [1]u8{0x31} ** (std.math.maxInt(u16) + 1)),
+    );
+
+    try expect(
+        packBin,
+        "1234",
+        &[_]u8{ 0xC4, 0x04, 0x31, 0x32, 0x33, 0x34 },
+    );
+    try expect(
+        packBin,
+        &[1]u8{0x31} ** std.math.maxInt(u8),
+        &([_]u8{ 0xC4, 0xFF } ++ [1]u8{0x31} ** std.math.maxInt(u8)),
+    );
+    try expect(
+        packBin,
+        &[1]u8{0x31} ** std.math.maxInt(u16),
+        &([_]u8{ 0xC5, 0xFF, 0xFF } ++ [1]u8{0x31} ** std.math.maxInt(u16)),
+    );
+    try expect(
+        packBin,
+        &[1]u8{0x31} ** (std.math.maxInt(u16) + 1),
+        &([_]u8{ 0xC6, 0x00, 0x01, 0x00, 0x00 } ++ [1]u8{0x31} ** (std.math.maxInt(u16) + 1)),
+    );
+}
+
+test "pack array" {
+    try expect(packArray, 0, &[_]u8{0x90});
+    try expect(packArray, 15, &[_]u8{0x9F});
+    try expect(packArray, 16, &[_]u8{ 0xDC, 0x00, 0x10 });
+    try expect(packArray, maxInt(u16), &[_]u8{ 0xDC, 0xFF, 0xFF });
+    try expect(packArray, maxInt(u16) + 1, &[_]u8{ 0xDD, 0x00, 0x01, 0x00, 0x00 });
+    try expect(packArray, maxInt(u32), &[_]u8{ 0xDD, 0xFF, 0xFF, 0xFF, 0xFF });
+    try expect(packArray, maxInt(u32) + 1, error.ArrayTooLong);
 }
