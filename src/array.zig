@@ -13,7 +13,7 @@ pub fn packArray(writer: anytype, size: usize) PackError(@TypeOf(writer).Error)!
     const target_endian = comptime builtin.target.cpu.arch.endian();
 
     switch (size) {
-        0...15 => |len| try writer.writeByte(0b1001_0000 | @as(u8, @intCast(len))),
+        0...15 => try writer.writeAll(&[_]u8{0b1001_0000 | @as(u8, @intCast(size))}),
         16...maxInt(u16) => {
             try writer.writeAll(& //
                 [_]u8{0xDC} // marker

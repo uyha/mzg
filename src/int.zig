@@ -39,7 +39,7 @@ pub fn packIntWithEndian(
     };
 
     if (-32 <= input and input <= std.math.maxInt(u7)) {
-        return try writer.writeByte(@bitCast(@as(i8, @intCast(input))));
+        return try writer.writeAll(&[_]u8{@bitCast(@as(i8, @intCast(input)))});
     }
 
     if (std.math.maxInt(u7) < input) {

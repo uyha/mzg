@@ -13,17 +13,17 @@ pub fn packMap(writer: anytype, size: usize) PackError(@TypeOf(writer).Error)!vo
     const target_endian = comptime builtin.target.cpu.arch.endian();
 
     switch (size) {
-        0...15 => |len| try writer.writeByte(0b1000_0000 | @as(u8, @intCast(len))),
-        16...maxInt(u16) => |len| {
+        0...15 => try writer.writeAll(&[_]u8{0b1000_0000 | @as(u8, @intCast(size))}),
+        16...maxInt(u16) => {
             try writer.writeAll(& //
                 [_]u8{0xDE} //marker
-                ++ asBigEndianBytes(target_endian, @as(u16, @intCast(len))) // value
+                ++ asBigEndianBytes(target_endian, @as(u16, @intCast(size))) // value
             );
         },
-        maxInt(u16) + 1...maxInt(u32) => |len| {
+        maxInt(u16) + 1...maxInt(u32) => {
             try writer.writeAll(& //
                 [_]u8{0xDF} //marker
-                ++ asBigEndianBytes(target_endian, @as(u32, @intCast(len))) // value
+                ++ asBigEndianBytes(target_endian, @as(u32, @intCast(size))) // value
             );
         },
         else => return error.MapTooLong,

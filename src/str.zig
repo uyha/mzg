@@ -12,7 +12,7 @@ pub fn PackError(WriterError: type) type {
 pub fn packStr(writer: anytype, input: []const u8) PackError(@TypeOf(writer).Error)!void {
     switch (input.len) {
         0...31 => {
-            try writer.writeByte(0b1010_0000 | @as(u8, @intCast(input.len)));
+            try writer.writeAll(&[_]u8{0b1010_0000 | @as(u8, @intCast(input.len))});
         },
         32...std.math.maxInt(u8) => |len| {
             try writer.writeAll(&[_]u8{ 0xD9, @as(u8, @intCast(len)) });

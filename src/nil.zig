@@ -1,5 +1,5 @@
 pub fn packNil(
     writer: anytype,
 ) @TypeOf(writer).Error!void {
-    try writer.writeByte(0xC0);
+    try writer.writeAll(&[_]u8{0xC0});
 }
