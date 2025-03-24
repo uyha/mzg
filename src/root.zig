@@ -27,8 +27,21 @@ pub const packArray = array.packArray;
 const map = @import("map.zig");
 pub const packMap = map.packMap;
 
+const ext = @import("ext.zig");
+pub const packExt = map.packExt;
+
 comptime {
-    for (&[_]type{ nil, @"bool", int, float, str, bin, array, map }) |T| {
+    for (&[_]type{
+        nil,
+        @"bool",
+        int,
+        float,
+        str,
+        bin,
+        array,
+        map,
+        ext,
+    }) |T| {
         @import("std").testing.refAllDeclsRecursive(T);
     }
 }

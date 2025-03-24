@@ -96,6 +96,9 @@ pub fn expect(
                 "expected: {X:02} != output: {X:02}\n",
                 .{ expected[diff_index], output.items[diff_index] },
             );
+        } else {
+            std.debug.print("expected: {any}\n", .{expected});
+            std.debug.print("ouput: {any}\n", .{output.items});
         }
         return err;
     }
