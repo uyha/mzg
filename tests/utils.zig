@@ -17,22 +17,8 @@ pub fn expect(
     const packer_info = @typeInfo(@TypeOf(packer)).@"fn";
 
     const returned = switch (packer_info.params.len) {
-        1 => @call(.auto, packer, .{
-            output.writer(t.allocator),
-        }),
-        2 => @call(.auto, packer, .{
-            output.writer(t.allocator),
-            input,
-        }),
-        3 => @call(
-            .auto,
-            packer,
-            .{
-                comptime builtin.target.cpu.arch.endian(),
-                output.writer(t.allocator),
-                input,
-            },
-        ),
+        1 => @call(.auto, packer, .{output.writer(t.allocator)}),
+        2 => @call(.auto, packer, .{ output.writer(t.allocator), input }),
         else => @compileError("WTF"),
     };
 
