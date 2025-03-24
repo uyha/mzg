@@ -5,11 +5,11 @@ pub fn main() !void {
     defer buffer.deinit(allocator);
 
     const packer = zmgp.packerWithBehavior(.{
-        .@"struct" = .map,
+        .@"enum" = .value,
         .skip_null = true,
     }, buffer.writer(allocator));
 
-    try packer.pack(union(enum) { a: u16, b: u32 }{ .b = 16 });
+    try packer.pack(union(enum) { a: u16, b: u32 }{ .b = 1 });
 
     std.debug.print("{X:02}\n", .{buffer.items});
 }

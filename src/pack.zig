@@ -4,7 +4,7 @@ const std = @import("std");
 pub const Behavior = struct {
     const Self = @This();
 
-    /// This field decides if a byte slice like value ([N]u8, []u8, etc.) should be
+    /// This field decides if a byte slice like value (`[N]u8`, `[]u8`, etc.) should be
     /// packed as a `str` or a `bin`.
     byte_slice: enum { str, bin } = .bin,
     /// This field decides if an enum should be packed using its name or value. If the
@@ -33,6 +33,55 @@ pub fn Packer(comptime behavior: Behavior, comptime Writer: type) type {
             return .{ .writer = writer };
         }
 
+        /// Pack the given Zig value as MessagePack
+        ///
+        /// Supported types:
+        /// * Zig `null` and `void` -> `nil`.
+        /// * Zig `bool` -> `bool`.
+        /// * Zig `u8`, `i16`, `comptime_int`, etc. -> `int`.
+        /// * Zig `f16`, `f32`, `f64`, `comptime_float`, etc. -> `float`.
+        ///     * `f16` is converted to `f32` and then gets packed as `f32`.
+        ///     * `comptime_float` is converted to `f64` and then gets packed as `f64`.
+        /// * Zig optionals -> `nil` if it is null, otherwise, packed as the
+        ///   corresponding `child` type.
+        /// * Zig enums ->
+        ///     * If the enum has the method
+        ///       `pub fn zmgpPack(self: *@This(), packer: anytype) !void`, it is called
+        ///       with `packer` being a pointer to a constant packer.
+        ///     * Othwerwise, if `behavior.@"enum"` is `.name`, then the name of the enum
+        ///       is packed as a str, otherwise, its value is packed an int.
+        ///       Non-exhaustive enums cannot be used with `behavior.@"enum"` being
+        ///       `.name`.
+        /// * Zig untyped enum literal -> Can only be packed if `behavior.@"enum"` is
+        ///   `.name`. The name of the enum is packed as a str.
+        /// * Zig tagged unions ->
+        ///     * If the union has the method
+        ///       `pub fn zmgpPack(self: *@This(), packer: anytype) !void`, it is called
+        ///       with `packer` being a pointer to a constant packer.
+        ///     * Otherwise, it is packed as an `array` with 2 elements, the first being
+        ///       the tag enum, and the second being the actual value of the union. How
+        ///       the tag enum is packed is decided by `behavior.@"enum"`. Untagged
+        ///       unions cannot be packed.
+        /// * Zig structs ->
+        ///     * If the struct has the method
+        ///       `pub fn zmgpPack(self: *@This(), packer: anytype) !void`, it is called
+        ///       with `packer` being a pointer to a constant packer.
+        ///     * Otherwise, if it is
+        ///         * a tuple, all the fields are packed in an `array` in the order they
+        ///           are declared.
+        ///         * a normal struct, if `behavior.@"struct"`
+        ///             * is `.array`, the fields are packed in an `array` in the other
+        ///               they are declared.
+        ///             * is `.map`, the fields are packed in a `map`, with the keys
+        ///               being their names and the values being their values. In this
+        ///               case, if `behavior.skip_null` is `true`, null fields will be
+        ///               skipped.
+        /// * Zig error -> `str` if `behavior.@"error"` is `.name`, otherwise, `int`.
+        /// * Zig slices, arrays, sentinel-terminated pointers, and @Vector of `u8` ->
+        ///   `str` if `behavior.byte_slice` is `.str`, otherwise, `bin`.
+        /// * Zig slices, arrays, sentinel-terminated pointers of other types -> `array`
+        ///   of the elements.
+        /// * Zig `*T` -> packed as `T`
         pub fn pack(self: *const Self, value: anytype) zmgp.PackError(Writer)!void {
             const Value = @TypeOf(value);
             switch (@typeInfo(Value)) {

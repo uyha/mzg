@@ -46,4 +46,12 @@ pub fn build(b: *std.Build) void {
     const run_zmgp_example = b.addRunArtifact(zmgp_example);
     const run_zmgp_example_step = b.step("zmgp-exampe", "Run the zmgp example");
     run_zmgp_example_step.dependOn(&run_zmgp_example.step);
+
+    const docs_install = b.addInstallDirectory(.{
+        .install_dir = .prefix,
+        .install_subdir = "docs",
+        .source_dir = zmgp_lib.getEmittedDocs(),
+    });
+    const docs_step = b.step("zmgp-docs", "Emit documentation");
+    docs_step.dependOn(&docs_install.step);
 }
