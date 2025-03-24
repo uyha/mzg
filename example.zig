@@ -4,7 +4,7 @@ pub fn main() !void {
     var buffer: std.ArrayListUnmanaged(u8) = .empty;
     defer buffer.deinit(allocator);
 
-    const packer = zmgp.packerWithBehavior(.{
+    const packer = mzg.packerWithBehavior(.{
         .@"enum" = .value,
         .skip_null = true,
     }, buffer.writer(allocator));
@@ -15,4 +15,4 @@ pub fn main() !void {
 }
 
 const std = @import("std");
-const zmgp = @import("zmgp");
+const mzg = @import("mzg");

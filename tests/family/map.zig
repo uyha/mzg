@@ -3,7 +3,7 @@ test "packArray" {
 
     const std = @import("std");
     const maxInt = std.math.maxInt;
-    const packMap = @import("zmgp").packMap;
+    const packMap = @import("mzg").packMap;
 
     try expect(packMap, &[_]u8{0x80}, 0);
     try expect(packMap, &[_]u8{0x8F}, 15);

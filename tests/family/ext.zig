@@ -3,9 +3,9 @@ test "packExt" {
 
     const maxInt = @import("std").math.maxInt;
 
-    const zmgp = @import("zmgp");
-    const Ext = zmgp.Ext;
-    const packExt = @import("zmgp").packExt;
+    const mzg = @import("mzg");
+    const Ext = mzg.Ext;
+    const packExt = @import("mzg").packExt;
 
     try expect(packExt, &[_]u8{ 0xD4, 0x01 }, Ext.init(1, 1));
     try expect(packExt, &[_]u8{ 0xD5, 0x01 }, Ext.init(1, 2));
@@ -32,8 +32,8 @@ test "Timestamp" {
     const std = @import("std");
     const expectEqual = std.testing.expectEqual;
 
-    const zmgp = @import("zmgp");
-    const Timestamp = zmgp.Timestamp;
+    const mzg = @import("mzg");
+    const Timestamp = mzg.Timestamp;
 
     inline for (.{
         .{ .timestamp = Timestamp.fromSec(1), .sec = 1, .nano = 0 },
@@ -55,9 +55,9 @@ test "packTimestamp" {
 
     const maxInt = @import("std").math.maxInt;
 
-    const zmgp = @import("zmgp");
-    const Timestamp = zmgp.Timestamp;
-    const packTimestamp = zmgp.packTimestamp;
+    const mzg = @import("mzg");
+    const Timestamp = mzg.Timestamp;
+    const packTimestamp = mzg.packTimestamp;
 
     try expect(
         packTimestamp,

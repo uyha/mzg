@@ -5,7 +5,7 @@ test "packInt" {
     const maxInt = std.math.maxInt;
     const minInt = std.math.minInt;
 
-    const packInt = @import("zmgp").packInt;
+    const packInt = @import("mzg").packInt;
 
     // u8
     try expect(packInt, &[_]u8{0x00}, @as(u8, 0));

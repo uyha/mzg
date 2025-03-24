@@ -1,7 +1,7 @@
 test "packFloat" {
     const expect = @import("../utils.zig").expect;
 
-    const packFloat = @import("zmgp").packFloat;
+    const packFloat = @import("mzg").packFloat;
 
     try expect(
         packFloat,

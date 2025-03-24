@@ -1,4 +1,4 @@
-const zmgp = @import("zmgp.zig");
+const mzg = @import("mzg.zig");
 const std = @import("std");
 
 pub const Behavior = struct {
@@ -57,7 +57,7 @@ pub fn Packer(comptime behavior: Behavior, comptime Writer: type) type {
         ///   corresponding `child` type.
         /// * Zig enums ->
         ///     * If the enum has the method
-        ///       `pub fn zmgpPack(self: *@This(), packer: anytype) !void`, it is called
+        ///       `pub fn mzgPack(self: *@This(), packer: anytype) !void`, it is called
         ///       with `packer` being a pointer to a constant packer.
         ///     * Othwerwise, if `behavior.@"enum"` is `.name`, then the name of the enum
         ///       is packed as a str, otherwise, its value is packed an int.
@@ -67,7 +67,7 @@ pub fn Packer(comptime behavior: Behavior, comptime Writer: type) type {
         ///   `.name`. The name of the enum is packed as a str.
         /// * Zig tagged unions ->
         ///     * If the union has the method
-        ///       `pub fn zmgpPack(self: *@This(), packer: anytype) !void`, it is called
+        ///       `pub fn mzgPack(self: *@This(), packer: anytype) !void`, it is called
         ///       with `packer` being a pointer to a constant packer.
         ///     * Otherwise, it is packed as an `array` with 2 elements, the first being
         ///       the tag enum, and the second being the actual value of the union. How
@@ -75,7 +75,7 @@ pub fn Packer(comptime behavior: Behavior, comptime Writer: type) type {
         ///       unions cannot be packed.
         /// * Zig structs ->
         ///     * If the struct has the method
-        ///       `pub fn zmgpPack(self: *@This(), packer: anytype) !void`, it is called
+        ///       `pub fn mzgPack(self: *@This(), packer: anytype) !void`, it is called
         ///       with `packer` being a pointer to a constant packer.
         ///     * Otherwise, if it is
         ///         * a tuple, all the fields are packed in an `array` in the order they
@@ -93,31 +93,31 @@ pub fn Packer(comptime behavior: Behavior, comptime Writer: type) type {
         /// * Zig slices, arrays, sentinel-terminated pointers of other types -> `array`
         ///   of the elements.
         /// * Zig `*T` -> packed as `T`
-        pub fn pack(self: *const Self, value: anytype) zmgp.PackError(Writer)!void {
+        pub fn pack(self: *const Self, value: anytype) mzg.PackError(Writer)!void {
             const Value = @TypeOf(value);
             switch (@typeInfo(Value)) {
-                .null, .void => try zmgp.packNil(self.writer),
-                .bool => try zmgp.packBool(self.writer, value),
-                .comptime_int, .int => try zmgp.packInt(self.writer, value),
-                .comptime_float, .float => try zmgp.packFloat(self.writer, value),
+                .null, .void => try mzg.packNil(self.writer),
+                .bool => try mzg.packBool(self.writer, value),
+                .comptime_int, .int => try mzg.packInt(self.writer, value),
+                .comptime_float, .float => try mzg.packFloat(self.writer, value),
                 .optional => {
                     if (value) |payload| {
                         return self.pack(payload);
                     } else {
-                        return zmgp.packNil(self.writer);
+                        return mzg.packNil(self.writer);
                     }
                 },
                 .@"enum" => |info| {
-                    if (std.meta.hasFn(Value, "zmgpPack")) {
-                        return value.zmgpPack(self);
+                    if (std.meta.hasFn(Value, "mzgPack")) {
+                        return value.mzgPack(self);
                     }
                     switch (behavior.@"enum") {
-                        .value => return zmgp.packInt(self.writer, @intFromEnum(value)),
+                        .value => return mzg.packInt(self.writer, @intFromEnum(value)),
                         .name => {
                             if (!info.is_exhaustive) {
                                 @compileError("Cannot pack non-exhaustive enum using its name");
                             }
-                            return zmgp.packStr(self.writer, @tagName(value));
+                            return mzg.packStr(self.writer, @tagName(value));
                         },
                     }
                 },
@@ -126,11 +126,11 @@ pub fn Packer(comptime behavior: Behavior, comptime Writer: type) type {
                         @compileError("Cannot pack enum literal when behavior requries the value of the enum is packed");
                     }
 
-                    return zmgp.packStr(self.writer, @tagName(value));
+                    return mzg.packStr(self.writer, @tagName(value));
                 },
                 .@"union" => |info| {
-                    if (std.meta.hasFn(Value, "zmgpPack")) {
-                        return value.zmgpPack(self);
+                    if (std.meta.hasFn(Value, "mzgPack")) {
+                        return value.mzgPack(self);
                     }
 
                     if (info.tag_type != null) {
@@ -144,11 +144,11 @@ pub fn Packer(comptime behavior: Behavior, comptime Writer: type) type {
                     }
                 },
                 .@"struct" => |info| {
-                    if (std.meta.hasFn(Value, "msgpPack")) {
-                        return value.msgpPack(self);
+                    if (std.meta.hasFn(Value, "mzgPack")) {
+                        return value.mzgPack(self);
                     }
                     if (info.is_tuple) {
-                        try zmgp.packArray(self.writer, info.fields.len);
+                        try mzg.packArray(self.writer, info.fields.len);
                         inline for (info.fields) |field| {
                             try self.pack(@field(value, field.name));
                         }
@@ -157,7 +157,7 @@ pub fn Packer(comptime behavior: Behavior, comptime Writer: type) type {
 
                     switch (behavior.@"struct") {
                         .array => {
-                            try zmgp.packArray(self.writer, info.fields.len);
+                            try mzg.packArray(self.writer, info.fields.len);
                             inline for (info.fields) |field| {
                                 try self.pack(@field(value, field.name));
                             }
@@ -175,22 +175,22 @@ pub fn Packer(comptime behavior: Behavior, comptime Writer: type) type {
                                     }
                                 }
 
-                                try zmgp.packMap(self.writer, non_null_len);
+                                try mzg.packMap(self.writer, non_null_len);
                                 inline for (info.fields) |field| {
                                     if (@typeInfo(field.type) == .optional) {
                                         if (@field(value, field.name) != null) {
-                                            try zmgp.packStr(self.writer, field.name);
+                                            try mzg.packStr(self.writer, field.name);
                                             try self.pack(@field(value, field.name));
                                         }
                                     } else {
-                                        try zmgp.packStr(self.writer, field.name);
+                                        try mzg.packStr(self.writer, field.name);
                                         try self.pack(@field(value, field.name));
                                     }
                                 }
                             } else {
-                                try zmgp.packMap(self.writer, info.fields.len);
+                                try mzg.packMap(self.writer, info.fields.len);
                                 inline for (info.fields) |field| {
-                                    try zmgp.packStr(self.writer, field.name);
+                                    try mzg.packStr(self.writer, field.name);
                                     try self.pack(@field(value, field.name));
                                 }
                             }
@@ -199,7 +199,7 @@ pub fn Packer(comptime behavior: Behavior, comptime Writer: type) type {
                 },
                 .error_set => {
                     return switch (behavior.@"error") {
-                        .name => zmgp.packStr(self.writer, @errorName(value)),
+                        .name => mzg.packStr(self.writer, @errorName(value)),
                         .value => self.pack(@intFromError(value)),
                     };
                 },
@@ -220,12 +220,12 @@ pub fn Packer(comptime behavior: Behavior, comptime Writer: type) type {
 
                         if (ptr.child == u8) {
                             return switch (behavior.byte_slice) {
-                                .str => zmgp.packStr(self.writer, slice),
-                                .bin => zmgp.packBin(self.writer, slice),
+                                .str => mzg.packStr(self.writer, slice),
+                                .bin => mzg.packBin(self.writer, slice),
                             };
                         }
 
-                        try zmgp.packArray(self.writer, slice.len);
+                        try mzg.packArray(self.writer, slice.len);
                         for (slice) |elem| {
                             try self.pack(elem);
                         }

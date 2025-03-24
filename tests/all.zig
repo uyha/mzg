@@ -9,6 +9,7 @@ comptime {
         @import("family/map.zig"),
         @import("family/nil.zig"),
         @import("family/str.zig"),
+        @import("pack.zig"),
     }) |target| {
         @import("std").testing.refAllDeclsRecursive(target);
     }

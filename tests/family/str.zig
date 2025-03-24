@@ -3,7 +3,7 @@ test "packStr" {
     const expect = @import("../utils.zig").expect;
 
     const maxInt = @import("std").math.maxInt;
-    const packStr = @import("zmgp").packStr;
+    const packStr = @import("mzg").packStr;
 
     try expect(
         packStr,

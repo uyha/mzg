@@ -2,7 +2,7 @@ test "packArray" {
     const expect = @import("../utils.zig").expect;
 
     const maxInt = @import("std").math.maxInt;
-    const packArray = @import("zmgp").packArray;
+    const packArray = @import("mzg").packArray;
 
     try expect(packArray, &[_]u8{0x90}, 0);
     try expect(packArray, &[_]u8{0x9F}, 15);

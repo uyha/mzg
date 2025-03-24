@@ -5,8 +5,8 @@ pub fn build(b: *std.Build) void {
 
     const optimize = b.standardOptimizeOption(.{});
 
-    const zmgp = b.createModule(.{
-        .root_source_file = b.path("src/zmgp.zig"),
+    const mzg = b.createModule(.{
+        .root_source_file = b.path("src/mzg.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -16,42 +16,42 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    exe_mod.addImport("zmgp", zmgp);
+    exe_mod.addImport("mzg", mzg);
 
-    const zmgp_lib = b.addLibrary(.{
+    const mzg_lib = b.addLibrary(.{
         .linkage = .static,
-        .name = "zmgp",
-        .root_module = zmgp,
+        .name = "mzg",
+        .root_module = mzg,
     });
-    b.installArtifact(zmgp_lib);
+    b.installArtifact(mzg_lib);
 
-    const zmgp_unit_tests = b.addTest(.{
+    const mzg_unit_tests = b.addTest(.{
         .root_source_file = b.path("tests/all.zig"),
     });
-    zmgp_unit_tests.root_module.addImport("zmgp", zmgp);
-    const run_lib_unit_tests = b.addRunArtifact(zmgp_unit_tests);
+    mzg_unit_tests.root_module.addImport("mzg", mzg);
+    const run_lib_unit_tests = b.addRunArtifact(mzg_unit_tests);
 
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_unit_tests.step);
 
-    const zmgp_example = b.addExecutable(.{
-        .name = "zmgp-example",
+    const mzg_example = b.addExecutable(.{
+        .name = "mzg-example",
         .root_source_file = b.path("example.zig"),
         .target = target,
         .optimize = optimize,
     });
-    zmgp_example.root_module.addImport("zmgp", zmgp);
-    b.installArtifact(zmgp_example);
+    mzg_example.root_module.addImport("mzg", mzg);
+    b.installArtifact(mzg_example);
 
-    const run_zmgp_example = b.addRunArtifact(zmgp_example);
-    const run_zmgp_example_step = b.step("zmgp-exampe", "Run the zmgp example");
-    run_zmgp_example_step.dependOn(&run_zmgp_example.step);
+    const run_mzg_example = b.addRunArtifact(mzg_example);
+    const run_mzg_example_step = b.step("mzg-exampe", "Run the mzg example");
+    run_mzg_example_step.dependOn(&run_mzg_example.step);
 
     const docs_install = b.addInstallDirectory(.{
         .install_dir = .prefix,
         .install_subdir = "docs",
-        .source_dir = zmgp_lib.getEmittedDocs(),
+        .source_dir = mzg_lib.getEmittedDocs(),
     });
-    const docs_step = b.step("zmgp-docs", "Emit documentation");
+    const docs_step = b.step("mzg-docs", "Emit documentation");
     docs_step.dependOn(&docs_install.step);
 }
