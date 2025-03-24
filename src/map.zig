@@ -2,25 +2,29 @@ const std = @import("std");
 const maxInt = std.math.maxInt;
 
 const builtin = @import("builtin");
-const target_endian = builtin.target.cpu.arch.endian();
 
 const utils = @import("utils.zig");
-const NativeUsize = utils.NativeUsize;
-const writeWithEndian = utils.writeWithEndian;
+const asBigEndianBytes = utils.asBigEndianBytes;
 
 pub fn Error(WriterError: type) type {
     return WriterError || error{MapTooLong};
 }
 pub fn packMap(writer: anytype, size: usize) Error(@TypeOf(writer).Error)!void {
+    const target_endian = comptime builtin.target.cpu.arch.endian();
+
     switch (size) {
         0...15 => |len| try writer.writeByte(0b1000_0000 | @as(u8, @intCast(len))),
         16...maxInt(u16) => |len| {
-            try writer.writeByte(0xDE);
-            try writeWithEndian(target_endian, writer, @as(u16, @intCast(len)));
+            try writer.writeAll(& //
+                [_]u8{0xDE} //marker
+                ++ asBigEndianBytes(target_endian, @as(u16, @intCast(len))) // value
+            );
         },
         maxInt(u16) + 1...maxInt(u32) => |len| {
-            try writer.writeByte(0xDF);
-            try writeWithEndian(target_endian, writer, @as(u32, @intCast(len)));
+            try writer.writeAll(& //
+                [_]u8{0xDF} //marker
+                ++ asBigEndianBytes(target_endian, @as(u32, @intCast(len))) // value
+            );
         },
         else => return error.MapTooLong,
     }

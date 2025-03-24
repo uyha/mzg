@@ -4,7 +4,7 @@ const builtin = @import("builtin");
 const target_endian = builtin.target.cpu.arch.endian();
 
 const utils = @import("utils.zig");
-const writeWithEndian = utils.writeWithEndian;
+const asBigEndianBytes = utils.asBigEndianBytes;
 
 pub fn Error(WriterError: type) type {
     return WriterError || error{StringTooLong};
@@ -18,12 +18,16 @@ pub fn packStr(writer: anytype, input: []const u8) Error(@TypeOf(writer).Error)!
             try writer.writeAll(&[_]u8{ 0xD9, @as(u8, @intCast(len)) });
         },
         std.math.maxInt(u8) + 1...std.math.maxInt(u16) => |len| {
-            try writer.writeByte(0xDA);
-            try writeWithEndian(target_endian, writer, @as(u16, @intCast(len)));
+            try writer.writeAll(& //
+                [_]u8{0xDA} //marker
+                ++ asBigEndianBytes(target_endian, @as(u16, @intCast(len))) // value
+            );
         },
         std.math.maxInt(u16) + 1...std.math.maxInt(u32) => |len| {
-            try writer.writeByte(0xDB);
-            try writeWithEndian(target_endian, writer, @as(u32, @intCast(len)));
+            try writer.writeAll(& //
+                [_]u8{0xDB} //marker
+                ++ asBigEndianBytes(target_endian, @as(u32, @intCast(len))) // value
+            );
         },
         else => return error.StringTooLong,
     }

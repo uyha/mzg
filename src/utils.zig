@@ -11,36 +11,25 @@ pub fn NativeUsize() type {
     };
 }
 
-pub inline fn writeWithEndian(
+pub inline fn asBigEndianBytes(
     comptime endian: std.builtin.Endian,
-    writer: anytype,
     input: anytype,
-) @TypeOf(writer).Error!void {
+) [@sizeOf(@TypeOf(input))]u8 {
     const Input = @TypeOf(input);
     const raw = raw: switch (Input) {
         f32, f64 => |Float| {
             const Target = if (Float == f32) u32 else u64;
-            if (comptime endian == .little) {
-                break :raw @byteSwap(@as(Target, @bitCast(input)));
-            } else {
-                break :raw @as(Target, @bitCast(input));
-            }
+            break :raw @as(Target, @bitCast(input));
         },
-        u8, u16, u32, u64, i8, i16, i32, i64 => if (comptime endian == .little)
-            @byteSwap(input)
-        else
-            input,
-        usize => if (comptime endian == .little)
-            @byteSwap(@as(NativeUsize(), input))
-        else
-            @as(NativeUsize(), input),
+        u8, u16, u32, u64, i8, i16, i32, i64 => input,
+        usize => @as(NativeUsize(), input),
         else => @compileError(std.fmt.comptimePrint(
             "{s} is not supported by this function",
             .{@typeName(Input)},
         )),
     };
 
-    try writer.writeAll(std.mem.asBytes(&raw));
+    return std.mem.toBytes(if (endian == .little) @byteSwap(raw) else raw);
 }
 
 pub fn expect(

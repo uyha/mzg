@@ -1,26 +1,30 @@
 const std = @import("std");
-
 const builtin = @import("builtin");
-const target_endian = builtin.target.cpu.arch.endian();
 
 const utils = @import("utils.zig");
-const writeWithEndian = utils.writeWithEndian;
+const asBigEndianBytes = utils.asBigEndianBytes;
 
 pub fn Error(WriterError: type) type {
     return WriterError || error{BinaryTooLong};
 }
 pub fn packBin(writer: anytype, input: []const u8) Error(@TypeOf(writer).Error)!void {
+    const target_endian = comptime builtin.target.cpu.arch.endian();
+
     switch (input.len) {
         0...std.math.maxInt(u8) => |len| {
             try writer.writeAll(&[_]u8{ 0xC4, @as(u8, @intCast(len)) });
         },
         std.math.maxInt(u8) + 1...std.math.maxInt(u16) => |len| {
-            try writer.writeByte(0xC5);
-            try writeWithEndian(target_endian, writer, @as(u16, @intCast(len)));
+            try writer.writeAll(& //
+                [_]u8{0xC5} // marker
+                ++ asBigEndianBytes(target_endian, @as(u16, @intCast(len))) // size
+            );
         },
         std.math.maxInt(u16) + 1...std.math.maxInt(u32) => |len| {
-            try writer.writeByte(0xC6);
-            try writeWithEndian(target_endian, writer, @as(u32, @intCast(len)));
+            try writer.writeAll(& //
+                [_]u8{0xC6} // marker
+                ++ asBigEndianBytes(target_endian, @as(u32, @intCast(len))) // size
+            );
         },
         else => return error.BinaryTooLong,
     }

@@ -1,10 +1,9 @@
 const std = @import("std");
 
 const builtin = @import("builtin");
-const target_endian = builtin.target.cpu.arch.endian();
 
 const utils = @import("utils.zig");
-const writeWithEndian = utils.writeWithEndian;
+const asBigEndianBytes = utils.asBigEndianBytes;
 
 pub fn packFloatWithEndian(
     comptime endian: std.builtin.Endian,
@@ -31,22 +30,28 @@ pub fn packFloatWithEndian(
 
     switch (comptime Input) {
         comptime_float => {
-            try writer.writeByte(0xCB);
-            try writeWithEndian(endian, writer, @as(f64, input));
+            try writer.writeAll(& //
+                [_]u8{0xCB} // marker
+                ++ asBigEndianBytes(endian, @as(f64, input)) // value
+            );
         },
         f16 => {
-            try writer.writeByte(0xCA);
-            try writeWithEndian(endian, writer, @as(f32, input));
+            try writer.writeAll(& //
+                [_]u8{0xCa} //marker
+                ++ asBigEndianBytes(endian, @as(f32, input)) // value
+            );
         },
         f32, f64 => {
-            try writer.writeByte(if (Input == f32) 0xCA else 0xCB);
-            try writeWithEndian(endian, writer, input);
+            try writer.writeAll(& //
+                [_]u8{if (Input == f32) 0xCA else 0xCB} //marker
+                ++ asBigEndianBytes(endian, input) // value
+            );
         },
         else => unreachable,
     }
 }
 pub fn packFloat(writer: anytype, input: anytype) @TypeOf(writer).Error!void {
-    return packFloatWithEndian(target_endian, writer, input);
+    return packFloatWithEndian(comptime builtin.target.cpu.arch.endian(), writer, input);
 }
 
 test "packFloat" {

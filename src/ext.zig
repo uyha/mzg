@@ -5,8 +5,7 @@ const builtin = @import("builtin");
 const target_endian = builtin.target.cpu.arch.endian();
 
 const utils = @import("utils.zig");
-const NativeUsize = utils.NativeUsize;
-const writeWithEndian = utils.writeWithEndian;
+const asBigEndianBytes = utils.asBigEndianBytes;
 
 pub const Ext = struct {
     type: i8,
@@ -30,14 +29,16 @@ pub fn packExt(writer: anytype, ext: Ext) Error(@TypeOf(writer).Error)!void {
             try writer.writeAll(&[3]u8{ 0xC7, @intCast(size), @bitCast(ext.type) });
         },
         maxInt(u8) + 1...maxInt(u16) => |size| {
-            try writer.writeByte(0xC8);
-            try writeWithEndian(target_endian, writer, @as(u16, @intCast(size)));
-            try writer.writeByte(@bitCast(ext.type));
+            const buffer = [_]u8{0xC8} // marker
+                ++ asBigEndianBytes(target_endian, @as(u16, @intCast(size))) // size
+                ++ [_]u8{@bitCast(ext.type)}; // type
+            try writer.writeAll(&buffer);
         },
         maxInt(u16) + 1...maxInt(u32) => |size| {
-            try writer.writeByte(0xC9);
-            try writeWithEndian(target_endian, writer, size);
-            try writer.writeByte(@bitCast(ext.type));
+            const buffer = [_]u8{0xC9} // marker
+                ++ asBigEndianBytes(target_endian, size) // size
+                ++ [_]u8{@bitCast(ext.type)}; // type
+            try writer.writeAll(&buffer);
         },
     }
 }

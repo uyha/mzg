@@ -1,11 +1,10 @@
 const std = @import("std");
 
 const builtin = @import("builtin");
-const target_endian = builtin.target.cpu.arch.endian();
 
 const utils = @import("utils.zig");
 const NativeUsize = utils.NativeUsize;
-const writeWithEndian = utils.writeWithEndian;
+const asBigEndianBytes = utils.asBigEndianBytes;
 
 // Originally, there was a `behavior` parameter that contains a `priority` field that
 // specifies if the packing procedure should prioritize for the smallest amount of byte
@@ -46,8 +45,10 @@ pub fn packIntWithEndian(
     if (std.math.maxInt(u7) < input) {
         inline for (.{ u8, u16, u32, u64 }) |T| {
             if (input <= std.math.maxInt(T)) {
-                try writer.writeByte(intMarker(T));
-                try writeWithEndian(endian, writer, @as(T, @intCast(input)));
+                try writer.writeAll(& //
+                    [_]u8{intMarker(T)} //marker
+                    ++ asBigEndianBytes(endian, @as(T, @intCast(input))) // value
+                );
                 return;
             }
         }
@@ -56,8 +57,10 @@ pub fn packIntWithEndian(
 
     inline for (.{ i8, i16, i32, i64 }) |T| {
         if (std.math.minInt(T) <= input) {
-            try writer.writeByte(intMarker(T));
-            try writeWithEndian(endian, writer, @as(T, @intCast(input)));
+            try writer.writeAll(& //
+                [_]u8{intMarker(T)} //marker
+                ++ asBigEndianBytes(endian, @as(T, @intCast(input))) // value
+            );
             return;
         }
     }
@@ -68,6 +71,7 @@ pub fn packInt(
     writer: anytype,
     input: anytype,
 ) @TypeOf(writer).Error!void {
+    const target_endian = comptime builtin.target.cpu.arch.endian();
     return packIntWithEndian(target_endian, writer, input);
 }
 
