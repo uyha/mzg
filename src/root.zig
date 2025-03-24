@@ -1,8 +1,3 @@
-const utils = @import("utils.zig");
-const expect = utils.expect;
-const NativeUsize = utils.NativeUsize;
-const writeWithEndian = utils.writeWithEndian;
-
 pub const packNil = @import("nil.zig").packNil;
 pub const packBool = @import("bool.zig").packBool;
 
