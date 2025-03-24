@@ -33,4 +33,17 @@ pub fn build(b: *std.Build) void {
 
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_unit_tests.step);
+
+    const zmgp_example = b.addExecutable(.{
+        .name = "zmgp-example",
+        .root_source_file = b.path("example.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    zmgp_example.root_module.addImport("zmgp", zmgp);
+    b.installArtifact(zmgp_example);
+
+    const run_zmgp_example = b.addRunArtifact(zmgp_example);
+    const run_zmgp_example_step = b.step("zmgp-exampe", "Run the zmgp example");
+    run_zmgp_example_step.dependOn(&run_zmgp_example.step);
 }
