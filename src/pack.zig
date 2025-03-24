@@ -22,6 +22,17 @@ pub const Behavior = struct {
     skip_null: bool = true,
 
     pub const default: Self = .{};
+    pub const stringly: Self = .{
+        .@"enum" = .name,
+        .@"error" = .name,
+        .@"struct" = .map,
+    };
+    pub const full_stringly: Self = .{
+        .@"enum" = .name,
+        .@"error" = .name,
+        .@"struct" = .map,
+        .skip_null = false,
+    };
 };
 pub fn Packer(comptime behavior: Behavior, comptime Writer: type) type {
     return struct {
