@@ -4,11 +4,11 @@ test "packArray" {
     const maxInt = @import("std").math.maxInt;
     const packArray = @import("zmgp").packArray;
 
-    try expect(packArray, 0, &[_]u8{0x90});
-    try expect(packArray, 15, &[_]u8{0x9F});
-    try expect(packArray, 16, &[_]u8{ 0xDC, 0x00, 0x10 });
-    try expect(packArray, maxInt(u16), &[_]u8{ 0xDC, 0xFF, 0xFF });
-    try expect(packArray, maxInt(u16) + 1, &[_]u8{ 0xDD, 0x00, 0x01, 0x00, 0x00 });
-    try expect(packArray, maxInt(u32), &[_]u8{ 0xDD, 0xFF, 0xFF, 0xFF, 0xFF });
-    try expect(packArray, maxInt(u32) + 1, error.ArrayTooLong);
+    try expect(packArray, &[_]u8{0x90}, 0);
+    try expect(packArray, &[_]u8{0x9F}, 15);
+    try expect(packArray, &[_]u8{ 0xDC, 0x00, 0x10 }, 16);
+    try expect(packArray, &[_]u8{ 0xDC, 0xFF, 0xFF }, maxInt(u16));
+    try expect(packArray, &[_]u8{ 0xDD, 0x00, 0x01, 0x00, 0x00 }, maxInt(u16) + 1);
+    try expect(packArray, &[_]u8{ 0xDD, 0xFF, 0xFF, 0xFF, 0xFF }, maxInt(u32));
+    try expect(packArray, error.ArrayTooLong, maxInt(u32) + 1);
 }

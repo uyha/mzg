@@ -3,8 +3,8 @@ const std = @import("std");
 
 pub fn expect(
     packer: anytype,
-    input: anytype,
     expected: anytype,
+    input: anytype,
 ) !void {
     const Input = @TypeOf(input);
     const Expected = @TypeOf(expected);

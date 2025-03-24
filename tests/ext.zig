@@ -7,24 +7,24 @@ test "packExt" {
     const Ext = zmgp.Ext;
     const packExt = @import("zmgp").packExt;
 
-    try expect(packExt, Ext.init(1, 1), &[_]u8{ 0xD4, 0x01 });
-    try expect(packExt, Ext.init(1, 2), &[_]u8{ 0xD5, 0x01 });
-    try expect(packExt, Ext.init(1, 4), &[_]u8{ 0xD6, 0x01 });
-    try expect(packExt, Ext.init(1, 8), &[_]u8{ 0xD7, 0x01 });
-    try expect(packExt, Ext.init(1, 16), &[_]u8{ 0xD8, 0x01 });
-    try expect(packExt, Ext.init(1, 0), &[_]u8{ 0xC7, 0x00, 0x01 });
-    try expect(packExt, Ext.init(1, 3), &[_]u8{ 0xC7, 0x03, 0x01 });
-    try expect(packExt, Ext.init(1, 5), &[_]u8{ 0xC7, 0x05, 0x01 });
-    try expect(packExt, Ext.init(1, maxInt(u8)), &[_]u8{ 0xC7, 0xFF, 0x01 });
+    try expect(packExt, &[_]u8{ 0xD4, 0x01 }, Ext.init(1, 1));
+    try expect(packExt, &[_]u8{ 0xD5, 0x01 }, Ext.init(1, 2));
+    try expect(packExt, &[_]u8{ 0xD6, 0x01 }, Ext.init(1, 4));
+    try expect(packExt, &[_]u8{ 0xD7, 0x01 }, Ext.init(1, 8));
+    try expect(packExt, &[_]u8{ 0xD8, 0x01 }, Ext.init(1, 16));
+    try expect(packExt, &[_]u8{ 0xC7, 0x00, 0x01 }, Ext.init(1, 0));
+    try expect(packExt, &[_]u8{ 0xC7, 0x03, 0x01 }, Ext.init(1, 3));
+    try expect(packExt, &[_]u8{ 0xC7, 0x05, 0x01 }, Ext.init(1, 5));
+    try expect(packExt, &[_]u8{ 0xC7, 0xFF, 0x01 }, Ext.init(1, maxInt(u8)));
     try expect(
         packExt,
-        Ext.init(1, maxInt(u16) - 1),
         &[_]u8{ 0xC8, 0xFF, 0xFE, 0x01 },
+        Ext.init(1, maxInt(u16) - 1),
     );
     try expect(
         packExt,
-        Ext.init(1, maxInt(u32) - 1),
         &[_]u8{ 0xC9, 0xFF, 0xFF, 0xFF, 0xFE, 0x01 },
+        Ext.init(1, maxInt(u32) - 1),
     );
 }
 
@@ -61,42 +61,42 @@ test "packTimestamp" {
 
     try expect(
         packTimestamp,
-        Timestamp{ .sec = 0, .nano = 1_000_000_000 },
         error.InvalidTimestamp,
+        Timestamp{ .sec = 0, .nano = 1_000_000_000 },
     );
     try expect(
         packTimestamp,
-        Timestamp.fromSec(1),
         &[_]u8{ 0xD6, 0xFF, 0x00, 0x00, 0x00, 0x01 },
+        Timestamp.fromSec(1),
     );
     try expect(
         packTimestamp,
-        Timestamp.fromSec(maxInt(u32)),
         &[_]u8{ 0xD6, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+        Timestamp.fromSec(maxInt(u32)),
     );
     try expect(
         packTimestamp,
-        Timestamp.fromSec(maxInt(u34)),
         &[_]u8{ 0xD7, 0xFF, 0x00, 0x00, 0x00, 0x03, 0xFF, 0xFF, 0xFF, 0xFF },
+        Timestamp.fromSec(maxInt(u34)),
     );
     try expect(
         packTimestamp,
-        Timestamp{ .sec = 9, .nano = 999_999_999 },
         &[_]u8{ 0xD7, 0xFF, 0xEE, 0x6B, 0x27, 0xFC, 0x00, 0x00, 0x00, 0x09 },
+        Timestamp{ .sec = 9, .nano = 999_999_999 },
     );
     try expect(
         packTimestamp,
-        Timestamp{ .sec = maxInt(u34), .nano = 999_999_999 },
         &[_]u8{ 0xD7, 0xFF, 0xEE, 0x6B, 0x27, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+        Timestamp{ .sec = maxInt(u34), .nano = 999_999_999 },
     );
     try expect(
         packTimestamp,
-        Timestamp{ .sec = maxInt(u34) + 1, .nano = 999_999_999 },
         &[_]u8{ 0xC7, 0x0C, 0xFF, 0x3B, 0x9A, 0xC9, 0xFF, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00 },
+        Timestamp{ .sec = maxInt(u34) + 1, .nano = 999_999_999 },
     );
     try expect(
         packTimestamp,
-        Timestamp{ .sec = maxInt(i64), .nano = 999_999_999 },
         &[_]u8{ 0xC7, 0x0C, 0xFF, 0x3B, 0x9A, 0xC9, 0xFF, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+        Timestamp{ .sec = maxInt(i64), .nano = 999_999_999 },
     );
 }

@@ -3,5 +3,5 @@ test "packNil" {
 
     const packNil = @import("zmgp").packNil;
 
-    try expect(packNil, {}, &[_]u8{0xC0});
+    try expect(packNil, &[_]u8{0xC0}, {});
 }
