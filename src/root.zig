@@ -24,8 +24,11 @@ pub const packBin = bin.packBin;
 const array = @import("array.zig");
 pub const packArray = array.packArray;
 
+const map = @import("map.zig");
+pub const packMap = map.packMap;
+
 comptime {
-    for (&[_]type{ nil, @"bool", int, float, str, bin, array }) |T| {
+    for (&[_]type{ nil, @"bool", int, float, str, bin, array, map }) |T| {
         @import("std").testing.refAllDeclsRecursive(T);
     }
 }
