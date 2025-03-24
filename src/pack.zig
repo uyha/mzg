@@ -1,4 +1,4 @@
-const zmgp = @import("root.zig");
+const zmgp = @import("zmgp.zig");
 const std = @import("std");
 
 pub const Behavior = struct {
