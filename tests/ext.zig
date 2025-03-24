@@ -61,7 +61,7 @@ test "packTimestamp" {
 
     try expect(
         packTimestamp,
-        error.InvalidTimestamp,
+        error.ValueTooBig,
         Timestamp{ .sec = 0, .nano = 1_000_000_000 },
     );
     try expect(

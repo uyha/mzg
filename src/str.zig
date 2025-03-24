@@ -6,10 +6,9 @@ const target_endian = builtin.target.cpu.arch.endian();
 const utils = @import("utils.zig");
 const asBigEndianBytes = utils.asBigEndianBytes;
 
-pub fn PackError(WriterError: type) type {
-    return WriterError || error{StringTooLong};
-}
-pub fn packStr(writer: anytype, input: []const u8) PackError(@TypeOf(writer).Error)!void {
+const PackError = @import("error.zig").PackError;
+
+pub fn packStr(writer: anytype, input: []const u8) PackError(@TypeOf(writer))!void {
     switch (input.len) {
         0...31 => {
             try writer.writeAll(&[_]u8{0b1010_0000 | @as(u8, @intCast(input.len))});
@@ -29,7 +28,7 @@ pub fn packStr(writer: anytype, input: []const u8) PackError(@TypeOf(writer).Err
                 ++ asBigEndianBytes(target_endian, @as(u32, @intCast(len))) // value
             );
         },
-        else => return error.StringTooLong,
+        else => return error.ValueTooBig,
     }
     try writer.writeAll(input);
 }

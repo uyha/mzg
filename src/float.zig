@@ -5,11 +5,13 @@ const builtin = @import("builtin");
 const utils = @import("utils.zig");
 const asBigEndianBytes = utils.asBigEndianBytes;
 
+const PackError = @import("error.zig").PackError;
+
 pub fn packFloatWithEndian(
     comptime endian: std.builtin.Endian,
     writer: anytype,
     input: anytype,
-) @TypeOf(writer).Error!void {
+) PackError(@TypeOf(writer))!void {
     const Input = @TypeOf(input);
 
     comptime switch (@typeInfo(Input)) {
@@ -50,6 +52,6 @@ pub fn packFloatWithEndian(
         else => unreachable,
     }
 }
-pub fn packFloat(writer: anytype, input: anytype) @TypeOf(writer).Error!void {
+pub fn packFloat(writer: anytype, input: anytype) PackError(@TypeOf(writer))!void {
     return packFloatWithEndian(comptime builtin.target.cpu.arch.endian(), writer, input);
 }

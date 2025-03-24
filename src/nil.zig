@@ -1,5 +1,7 @@
+const PackError = @import("error.zig").PackError;
+
 pub fn packNil(
     writer: anytype,
-) @TypeOf(writer).Error!void {
+) PackError(@TypeOf(writer))!void {
     try writer.writeAll(&[_]u8{0xC0});
 }

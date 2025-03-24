@@ -11,5 +11,5 @@ test "packArray" {
     try expect(packMap, &[_]u8{ 0xDE, 0xFF, 0xFF }, maxInt(u16));
     try expect(packMap, &[_]u8{ 0xDF, 0x00, 0x01, 0x00, 0x00 }, maxInt(u16) + 1);
     try expect(packMap, &[_]u8{ 0xDF, 0xFF, 0xFF, 0xFF, 0xFF }, maxInt(u32));
-    try expect(packMap, error.MapTooLong, maxInt(u32) + 1);
+    try expect(packMap, error.ValueTooBig, maxInt(u32) + 1);
 }

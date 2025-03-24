@@ -4,10 +4,9 @@ const builtin = @import("builtin");
 const utils = @import("utils.zig");
 const asBigEndianBytes = utils.asBigEndianBytes;
 
-pub fn PackError(WriterError: type) type {
-    return WriterError || error{BinaryTooLong};
-}
-pub fn packBin(writer: anytype, input: []const u8) PackError(@TypeOf(writer).Error)!void {
+const PackError = @import("error.zig").PackError;
+
+pub fn packBin(writer: anytype, input: []const u8) PackError(@TypeOf(writer))!void {
     const target_endian = comptime builtin.target.cpu.arch.endian();
 
     switch (input.len) {
@@ -26,7 +25,7 @@ pub fn packBin(writer: anytype, input: []const u8) PackError(@TypeOf(writer).Err
                 ++ asBigEndianBytes(target_endian, @as(u32, @intCast(len))) // size
             );
         },
-        else => return error.BinaryTooLong,
+        else => return error.ValueTooBig,
     }
     try writer.writeAll(input);
 }

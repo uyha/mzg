@@ -6,6 +6,8 @@ const utils = @import("utils.zig");
 const NativeUsize = utils.NativeUsize;
 const asBigEndianBytes = utils.asBigEndianBytes;
 
+const PackError = @import("error.zig").PackError;
+
 // Originally, there was a `behavior` parameter that contains a `priority` field that
 // specifies if the packing procedure should prioritize for the smallest amount of byte
 // written, or skipping the value checks and just write the bytes according to the type

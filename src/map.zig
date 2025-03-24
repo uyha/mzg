@@ -6,10 +6,9 @@ const builtin = @import("builtin");
 const utils = @import("utils.zig");
 const asBigEndianBytes = utils.asBigEndianBytes;
 
-pub fn PackError(WriterError: type) type {
-    return WriterError || error{MapTooLong};
-}
-pub fn packMap(writer: anytype, size: usize) PackError(@TypeOf(writer).Error)!void {
+const PackError = @import("error.zig").PackError;
+
+pub fn packMap(writer: anytype, size: usize) PackError(@TypeOf(writer))!void {
     const target_endian = comptime builtin.target.cpu.arch.endian();
 
     switch (size) {
@@ -26,6 +25,6 @@ pub fn packMap(writer: anytype, size: usize) PackError(@TypeOf(writer).Error)!vo
                 ++ asBigEndianBytes(target_endian, @as(u32, @intCast(size))) // value
             );
         },
-        else => return error.MapTooLong,
+        else => return error.ValueTooBig,
     }
 }

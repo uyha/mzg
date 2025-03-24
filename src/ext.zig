@@ -6,6 +6,8 @@ const builtin = @import("builtin");
 const utils = @import("utils.zig");
 const asBigEndianBytes = utils.asBigEndianBytes;
 
+const PackError = @import("error.zig").PackError;
+
 pub const Ext = struct {
     type: i8,
     size: u32,
@@ -14,10 +16,7 @@ pub const Ext = struct {
         return .{ .type = @"type", .size = size };
     }
 };
-pub fn PackError(WriterError: type) type {
-    return WriterError || error{ExtTooLong};
-}
-pub fn packExt(writer: anytype, ext: Ext) PackError(@TypeOf(writer).Error)!void {
+pub fn packExt(writer: anytype, ext: Ext) PackError(@TypeOf(writer))!void {
     const target_endian = comptime builtin.target.cpu.arch.endian();
     switch (ext.size) {
         1 => try writer.writeAll(&[2]u8{ 0xD4, @bitCast(ext.type) }),
@@ -81,17 +80,14 @@ pub const Timestamp = struct {
     }
 };
 
-pub fn PackTimestampError(WriterError: type) type {
-    return WriterError || error{InvalidTimestamp};
-}
 pub fn packTimestamp(
     writer: anytype,
     timestamp: Timestamp,
-) PackTimestampError(@TypeOf(writer).Error)!void {
+) PackError(@TypeOf(writer))!void {
     const target_endian = comptime builtin.target.cpu.arch.endian();
 
     if (timestamp.nano > 999_999_999) {
-        return error.InvalidTimestamp;
+        return error.ValueTooBig;
     }
 
     if (timestamp.nano == 0 and 0 <= timestamp.sec and timestamp.sec <= maxInt(u32)) {
