@@ -21,12 +21,16 @@ pub const Behavior = struct {
     /// packed.
     skip_null: bool = true,
 
+    /// Pack everything as small as possible.
     pub const default: Self = .{};
+    /// Pack enums and errors as strings. Pack structs with field names as the keys, and
+    /// null fields are skipped.
     pub const stringly: Self = .{
         .@"enum" = .name,
         .@"error" = .name,
         .@"struct" = .map,
     };
+    /// Similar to `.stringly` but null fields in structs are not skipped.
     pub const full_stringly: Self = .{
         .@"enum" = .name,
         .@"error" = .name,
