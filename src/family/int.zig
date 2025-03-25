@@ -22,10 +22,12 @@ pub fn packIntWithEndian(
     writer: anytype,
     input: anytype,
 ) @TypeOf(writer).Error!void {
+    const maxInt = std.math.maxInt;
+    const minInt = std.math.minInt;
     const Input = @TypeOf(input);
 
     comptime switch (@typeInfo(Input)) {
-        .comptime_int => if (input < std.math.minInt(i64) or input > std.math.maxInt(u64)) {
+        .comptime_int => if (input < minInt(i64) or input > maxInt(u64)) {
             @compileError(std.fmt.comptimePrint(
                 "cannot pack input outside of [-2^63, 2^64 -1], input is {}",
                 .{input},
@@ -40,13 +42,13 @@ pub fn packIntWithEndian(
         else => @compileError(@typeName(Input) ++ " cannot be packed as an int"),
     };
 
-    if (-32 <= input and input <= std.math.maxInt(u7)) {
+    if (-32 <= input and input <= maxInt(u7)) {
         return try writer.writeAll(&[_]u8{@bitCast(@as(i8, @intCast(input)))});
     }
 
-    if (std.math.maxInt(u7) < input) {
+    if (maxInt(u7) < input) {
         inline for (.{ u8, u16, u32, u64 }) |T| {
-            if (input <= std.math.maxInt(T)) {
+            if (input <= maxInt(T)) {
                 try writer.writeAll(& //
                     [_]u8{marker(T)} //marker
                     ++ asBigEndianBytes(endian, @as(T, @intCast(input))) // value
@@ -58,7 +60,7 @@ pub fn packIntWithEndian(
     }
 
     inline for (.{ i8, i16, i32, i64 }) |T| {
-        if (std.math.minInt(T) <= input) {
+        if (minInt(T) <= input) {
             try writer.writeAll(& //
                 [_]u8{marker(T)} //marker
                 ++ asBigEndianBytes(endian, @as(T, @intCast(input))) // value
@@ -73,8 +75,11 @@ pub fn packInt(
     writer: anytype,
     input: anytype,
 ) @TypeOf(writer).Error!void {
-    const target_endian = comptime builtin.target.cpu.arch.endian();
-    return packIntWithEndian(target_endian, writer, input);
+    return packIntWithEndian(
+        comptime builtin.target.cpu.arch.endian(),
+        writer,
+        input,
+    );
 }
 
 fn marker(comptime T: type) u8 {
