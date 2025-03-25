@@ -7,9 +7,8 @@ pub const Behavior = struct {
     /// This field decides if a byte slice like value (`[N]u8`, `[]u8`, etc.) should be
     /// packed as a `str` or a `bin`.
     byte_slice: enum { str, bin } = .bin,
-    /// This field decides if an enum should be packed using its name or value. If the
-    /// enum is packed using its name, it cannot be a non-exhaustive enum. However, this
-    /// does not impact how a tagged union is packed.
+    /// This field decides if an enum / tagged union should be packed using its name or
+    /// value. If the enum is packed using its name, it cannot be a non-exhaustive enum.
     @"enum": enum { name, value } = .value,
     /// This field decides if an error set is packed using its name or value.
     @"error": enum { name, value } = .value,
@@ -23,8 +22,8 @@ pub const Behavior = struct {
 
     /// Pack everything as small as possible.
     pub const default: Self = .{};
-    /// Pack enums and errors as strings. Pack structs with field names as the keys, and
-    /// null fields are skipped.
+    /// Pack enums and errors as strings. Pack structs as maps with field names being the
+    /// keys, and null fields are skipped.
     pub const stringly: Self = .{
         .@"enum" = .name,
         .@"error" = .name,
@@ -53,7 +52,8 @@ pub fn Packer(comptime behavior: Behavior, comptime Writer: type) type {
         /// Supported types:
         /// * Zig `null` and `void` -> `nil`.
         /// * Zig `bool` -> `bool`.
-        /// * Zig `u8`, `i16`, `comptime_int`, etc. -> `int`.
+        /// * Zig `u8`, `i16`, `comptime_int`, etc. -> `int`. The packing uses the least
+        ///   amount of bytes based on the value.
         /// * Zig `f16`, `f32`, `f64`, `comptime_float`, etc. -> `float`.
         ///     * `f16` is converted to `f32` and then gets packed as `f32`.
         ///     * `comptime_float` is converted to `f64` and then gets packed as `f64`.
