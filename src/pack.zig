@@ -25,12 +25,14 @@ pub const Behavior = struct {
     /// Pack enums and errors as strings. Pack structs as maps with field names being the
     /// keys, and null fields are skipped.
     pub const stringly: Self = .{
+        .byte_slice = .str,
         .@"enum" = .name,
         .@"error" = .name,
         .@"struct" = .map,
     };
     /// Similar to `.stringly` but null fields in structs are not skipped.
     pub const full_stringly: Self = .{
+        .byte_slice = .str,
         .@"enum" = .name,
         .@"error" = .name,
         .@"struct" = .map,

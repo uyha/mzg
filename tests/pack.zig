@@ -127,6 +127,17 @@ test "pack error" {
         error.SomeError,
     );
 }
+test "pack []u8 like" {
+    const content = [_]u8{1};
+    try expect(.default, &[_]u8{ 0xC4, 0x01, 0x01 }, content);
+    try expect(.default, &[_]u8{ 0xC4, 0x01, 0x31 }, "1");
+
+    try expect(.stringly, &[_]u8{ 0xA1, 0x01 }, content);
+    try expect(.stringly, &[_]u8{ 0xA1, 0x31 }, "1");
+
+    try expect(.full_stringly, &[_]u8{ 0xA1, 0x01 }, content);
+    try expect(.full_stringly, &[_]u8{ 0xA1, 0x31 }, "1");
+}
 test "pack pointer and array like" {
     const array = [_]u32{ 1, 2 };
     try expect(.default, &[_]u8{ 0x92, 0x01, 0x02 }, array);
