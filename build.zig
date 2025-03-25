@@ -11,28 +11,21 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    const exe_mod = b.createModule(.{
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    exe_mod.addImport("mzg", mzg);
-
-    const mzg_lib = b.addLibrary(.{
+    const lib = b.addLibrary(.{
         .linkage = .static,
         .name = "mzg",
         .root_module = mzg,
     });
-    b.installArtifact(mzg_lib);
+    b.installArtifact(lib);
 
-    const mzg_unit_tests = b.addTest(.{
+    const tests = b.addTest(.{
         .root_source_file = b.path("tests/all.zig"),
     });
-    mzg_unit_tests.root_module.addImport("mzg", mzg);
-    const run_lib_unit_tests = b.addRunArtifact(mzg_unit_tests);
+    tests.root_module.addImport("mzg", mzg);
+    const run_tests = b.addRunArtifact(tests);
 
-    const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&run_lib_unit_tests.step);
+    const test_step = b.step("mzg-test", "Run unit tests");
+    test_step.dependOn(&run_tests.step);
 
     const mzg_example = b.addExecutable(.{
         .name = "mzg-example",
@@ -50,8 +43,25 @@ pub fn build(b: *std.Build) void {
     const docs_install = b.addInstallDirectory(.{
         .install_dir = .prefix,
         .install_subdir = "docs",
-        .source_dir = mzg_lib.getEmittedDocs(),
+        .source_dir = lib.getEmittedDocs(),
     });
     const docs_step = b.step("mzg-docs", "Emit documentation");
     docs_step.dependOn(&docs_install.step);
+
+    const format = b.addFmt(.{
+        .check = true,
+        .paths = &.{
+            "src/",
+            "build.zig",
+            "build.zig.zon",
+            "example.zig",
+        },
+    });
+    const format_step = b.step("mzg-fmt", "Format project");
+    format_step.dependOn(&format.step);
+
+    const all = b.step("mzg-all", "Run all steps");
+    all.dependOn(test_step);
+    all.dependOn(docs_step);
+    all.dependOn(format_step);
 }
