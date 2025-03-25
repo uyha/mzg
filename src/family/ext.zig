@@ -78,6 +78,10 @@ pub const Timestamp = struct {
             .nano = nano,
         };
     }
+
+    pub fn mzgPack(self: Self, packer: anytype) !void {
+        return packTimestamp(packer.writer, self);
+    }
 };
 
 pub fn packTimestamp(

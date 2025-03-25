@@ -147,3 +147,16 @@ test "pack pointer and array like" {
     const sen_slice: [*:2]const u32 = array[0..1 :2];
     try expect(.default, &[_]u8{ 0x91, 0x01 }, sen_slice);
 }
+test "pack Timestamp" {
+    const ts: mzg.Timestamp = .fromMilli(1_500);
+    try expect(
+        .default,
+        &[_]u8{ 0xD7, 0xFF, 0x77, 0x35, 0x94, 0x00, 0x00, 0x00, 0x00, 0x01 },
+        ts,
+    );
+    try expect(
+        .stringly,
+        &[_]u8{ 0xD7, 0xFF, 0x77, 0x35, 0x94, 0x00, 0x00, 0x00, 0x00, 0x01 },
+        ts,
+    );
+}
