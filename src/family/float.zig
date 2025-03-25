@@ -19,11 +19,11 @@ pub fn packFloatWithEndian(
             // TODO: Not really sure how to check comptime_float if it fits f64, find a
             // way to check it later
         },
-        .float => |Float| {
-            if (Float.bits > 64) {
+        .float => |float| {
+            if (float.bits > 64) {
                 @compileError(std.fmt.comptimePrint(
                     "cannot pack input with more than 64 bits as a float, input has {} bits",
-                    .{Float.bits},
+                    .{float.bits},
                 ));
             }
         },

@@ -33,10 +33,10 @@ pub fn packIntWithEndian(
                 .{input},
             ));
         },
-        .int => |Int| if (Int.bits > 64) {
+        .int => |int| if (int.bits > 64) {
             @compileError(std.fmt.comptimePrint(
                 "cannot pack input with more than 64 bits as an int, input has {} bits",
-                .{Int.bits},
+                .{int.bits},
             ));
         },
         else => @compileError(@typeName(Input) ++ " cannot be packed as an int"),

@@ -26,7 +26,7 @@ pub fn packBin(writer: anytype, input: []const u8) PackError(@TypeOf(writer))!vo
                 ++ asBigEndianBytes(target_endian, @as(u32, @intCast(len))) // size
             );
         },
-        else => return error.ValueTooBig,
+        else => return error.ValueInvalid,
     }
     try writer.writeAll(input);
 }

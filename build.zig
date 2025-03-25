@@ -40,13 +40,13 @@ pub fn build(b: *std.Build) void {
     const run_mzg_example_step = b.step("mzg-exampe", "Run the mzg example");
     run_mzg_example_step.dependOn(&run_mzg_example.step);
 
-    const docs_install = b.addInstallDirectory(.{
+    const docs = b.addInstallDirectory(.{
         .install_dir = .prefix,
         .install_subdir = "docs",
         .source_dir = lib.getEmittedDocs(),
     });
     const docs_step = b.step("mzg-docs", "Emit documentation");
-    docs_step.dependOn(&docs_install.step);
+    docs_step.dependOn(&docs.step);
 
     const format = b.addFmt(.{
         .check = true,

@@ -25,6 +25,6 @@ pub fn packArray(writer: anytype, size: usize) PackError(@TypeOf(writer))!void {
                 ++ asBigEndianBytes(target_endian, @as(u32, @intCast(size))) // size
             );
         },
-        else => return error.ValueTooBig,
+        else => return error.ValueInvalid,
     }
 }

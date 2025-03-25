@@ -30,7 +30,7 @@ pub fn packStr(writer: anytype, input: []const u8) PackError(@TypeOf(writer))!vo
                 ++ asBigEndianBytes(target_endian, @as(u32, @intCast(len))) // value
             );
         },
-        else => return error.ValueTooBig,
+        else => return error.ValueInvalid,
     }
     try writer.writeAll(input);
 }

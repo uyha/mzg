@@ -91,7 +91,7 @@ pub fn packTimestamp(
     const target_endian = comptime builtin.target.cpu.arch.endian();
 
     if (timestamp.nano > 999_999_999) {
-        return error.ValueTooBig;
+        return error.ValueInvalid;
     }
 
     if (timestamp.nano == 0 and 0 <= timestamp.sec and timestamp.sec <= maxInt(u32)) {
