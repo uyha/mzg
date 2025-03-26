@@ -12,27 +12,8 @@ pub fn unpack(buffer: []const u8, out: anytype) UnpackError!usize {
     const Child = info.pointer.child;
 
     switch (@typeInfo(Child)) {
-        .void => switch (try format.parse(buffer)) {
-            .nil => {
-                out.* = {};
-                return 1;
-            },
-            else => return UnpackError.TypeIncompatible,
-        },
-        .null => switch (try format.parse(buffer)) {
-            .nil => {
-                out.* = null;
-                return 1;
-            },
-            else => return UnpackError.TypeIncompatible,
-        },
-        .bool => return switch (try format.parse(buffer)) {
-            .bool => |value| {
-                out.* = value;
-                return 1;
-            },
-            else => return UnpackError.TypeIncompatible,
-        },
+        .void => return @import("nil.zig").unpackNil(buffer, out),
+        .bool => return @import("bool.zig").unpackBool(buffer, out),
         .int => return @import("int.zig").unpackInt(buffer, out),
         .float => return @import("float.zig").unpackFloat(buffer, out),
         .optional => switch (try format.parse(buffer)) {

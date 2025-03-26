@@ -2,8 +2,6 @@ const builtin = @import("builtin");
 const std = @import("std");
 const utils = @import("utils.zig");
 
-pub const Array = enum { fix, arr16, arr32 };
-
 const PackError = @import("error.zig").PackError;
 pub fn packArray(writer: anytype, size: usize) PackError(@TypeOf(writer))!void {
     const maxInt = std.math.maxInt;
