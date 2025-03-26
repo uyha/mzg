@@ -1,9 +1,7 @@
 const std = @import("std");
+const mzg = @import("mzg.zig");
 
-const UnpackError = @import("error.zig").UnpackError;
-const format = @import("format.zig");
-
-pub fn unpack(buffer: []const u8, out: anytype) UnpackError!usize {
+pub fn unpack(buffer: []const u8, out: anytype) mzg.UnpackError!usize {
     const Out = @TypeOf(out);
     const info = @typeInfo(Out);
     if (comptime info != .pointer or info.pointer.size != .one) {
@@ -16,7 +14,7 @@ pub fn unpack(buffer: []const u8, out: anytype) UnpackError!usize {
         .bool => return @import("bool.zig").unpackBool(buffer, out),
         .int => return @import("int.zig").unpackInt(buffer, out),
         .float => return @import("float.zig").unpackFloat(buffer, out),
-        .optional => switch (try format.parse(buffer)) {
+        .optional => switch (try mzg.format.parse(buffer)) {
             .nil => {
                 out.* = null;
                 return 1;
@@ -31,14 +29,14 @@ pub fn unpack(buffer: []const u8, out: anytype) UnpackError!usize {
                 return Child.mzgUnpack(buffer, out);
             }
 
-            switch (try format.parse(buffer)) {
+            switch (try mzg.format.parse(buffer)) {
                 .int => {
                     var raw: E.tag_type = undefined;
                     const size = try unpack(buffer, &raw);
                     out.* = std.meta.intToEnum(
                         Child,
                         raw,
-                    ) catch return UnpackError.ValueInvalid;
+                    ) catch return mzg.UnpackError.ValueInvalid;
                     return size;
                 },
                 .str => {
@@ -47,20 +45,20 @@ pub fn unpack(buffer: []const u8, out: anytype) UnpackError!usize {
                     out.* = std.meta.stringToEnum(
                         Child,
                         view,
-                    ) orelse return UnpackError.ValueInvalid;
+                    ) orelse return mzg.UnpackError.ValueInvalid;
                     return size;
                 },
-                else => return UnpackError.TypeIncompatible,
+                else => return mzg.UnpackError.TypeIncompatible,
             }
         },
         .pointer => {
             if (Child != []const u8) {
                 @compileError("'" ++ @typeName(Out) ++ "' is not supported");
             }
-            return switch (try format.parse(buffer)) {
-                .str => @import("str.zig").unpackStr(buffer, out),
-                .bin => @import("bin.zig").unpackBin(buffer, out),
-                else => UnpackError.TypeIncompatible,
+            return switch (try mzg.format.parse(buffer)) {
+                .str => mzg.unpackStr(buffer, out),
+                .bin => mzg.unpackBin(buffer, out),
+                else => mzg.UnpackError.TypeIncompatible,
             };
         },
         else => @compileError("'" ++ @typeName(Out) ++ "' is not supported"),

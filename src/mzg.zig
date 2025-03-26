@@ -1,24 +1,27 @@
 pub const packNil = @import("nil.zig").packNil;
 pub const packBool = @import("bool.zig").packBool;
 
-const int = @import("int.zig");
-pub const packInt = int.packInt;
-pub const packIntWithEndian = int.packIntWithEndian;
-
-const float = @import("float.zig");
-pub const packFloat = float.packFloat;
-pub const packFloatWithEndian = float.packFloatWithEndian;
-
-pub const packStr = @import("str.zig").packStr;
-pub const packBin = @import("bin.zig").packBin;
 pub const packArray = @import("array.zig").packArray;
+pub const packBin = @import("bin.zig").packBin;
+pub const packFloat = @import("float.zig").packFloat;
+pub const packInt = @import("int.zig").packInt;
 pub const packMap = @import("map.zig").packMap;
+pub const packStr = @import("str.zig").packStr;
+
+pub const unpackArray = @import("array.zig").unpackArray;
+pub const unpackBin = @import("bin.zig").unpackBin;
+pub const unpackFloat = @import("float.zig").unpackFloat;
+pub const unpackInt = @import("int.zig").unpackInt;
+pub const unpackMap = @import("map.zig").unpackMap;
+pub const unpackStr = @import("str.zig").unpackStr;
 
 const ext = @import("ext.zig");
 pub const Ext = ext.Ext;
 pub const packExt = ext.packExt;
 pub const Timestamp = ext.Timestamp;
 pub const packTimestamp = ext.packTimestamp;
+
+pub const format = @import("format.zig");
 
 pub const PackError = @import("error.zig").PackError;
 
