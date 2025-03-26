@@ -22,8 +22,7 @@ pub fn packBin(writer: anytype, input: []const u8) PackError(@TypeOf(writer))!vo
     try writer.writeAll(input);
 }
 
-pub const Bin = enum { bin8, bin16, bin32 };
-const parseFormat = @import("unpack.zig").parseFormat;
+const parseFormat = @import("format.zig").parse;
 const UnpackError = @import("error.zig").UnpackError;
 pub fn unpackBin(buffer: []const u8, out: *[]const u8) UnpackError!usize {
     const readInt = std.mem.readInt;

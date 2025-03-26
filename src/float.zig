@@ -32,9 +32,8 @@ pub fn packFloat(writer: anytype, value: anytype) @TypeOf(writer).Error!void {
     }
 }
 
-const parseFormat = @import("unpack.zig").parseFormat;
+const parseFormat = @import("format.zig").parse;
 const UnpackError = @import("error.zig").UnpackError;
-pub const Float = enum { f32, f64 };
 pub fn unpackFloatWithEndian(
     comptime endian: std.builtin.Endian,
     buffer: []const u8,

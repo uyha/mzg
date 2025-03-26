@@ -25,8 +25,7 @@ pub fn packStr(writer: anytype, input: []const u8) PackError(@TypeOf(writer))!vo
     try writer.writeAll(input);
 }
 
-pub const Str = enum { fix, str8, str16, str32 };
-const parseFormat = @import("unpack.zig").parseFormat;
+const parseFormat = @import("format.zig").parse;
 const UnpackError = @import("error.zig").UnpackError;
 pub fn unpackStr(buffer: []const u8, out: *[]const u8) UnpackError!usize {
     const readInt = std.mem.readInt;

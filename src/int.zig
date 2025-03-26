@@ -53,9 +53,8 @@ pub fn packInt(writer: anytype, value: anytype) @TypeOf(writer).Error!void {
     unreachable;
 }
 
-const parseFormat = @import("unpack.zig").parseFormat;
+const parseFormat = @import("format.zig").parse;
 const UnpackError = @import("error.zig").UnpackError;
-pub const Int = enum { pos, neg, u8, u16, u32, u64, i8, i16, i32, i64 };
 fn readInt(
     comptime Result: type,
     comptime Value: type,
