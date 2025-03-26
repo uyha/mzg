@@ -17,3 +17,51 @@ pub fn packArray(writer: anytype, size: usize) PackError(@TypeOf(writer))!void {
         else => return error.ValueInvalid,
     }
 }
+
+const parseFormat = @import("format.zig").parse;
+const UnpackError = @import("error.zig").UnpackError;
+pub fn unpackArray(buffer: []const u8, out: anytype) UnpackError!usize {
+    const info = @typeInfo(@TypeOf(out));
+    if (comptime info != .pointer or info.pointer.size != .one or info.pointer.is_const) {
+        @compileError("`out` has to be a pointer to an int");
+    }
+
+    const Child = info.pointer.child;
+
+    switch (@typeInfo(Child)) {
+        .int => {},
+        else => @compileError("`out` has to be a pointer to an int"),
+    }
+
+    switch (try parseFormat(buffer)) {
+        .array => |array| switch (array) {
+            .fix => {
+                out.* = buffer[0] & 0x0F;
+                return 1;
+            },
+            .arr16 => {
+                if (buffer.len < 3) {
+                    return UnpackError.BufferUnderRun;
+                }
+                out.* = utils.readIntBounded(
+                    Child,
+                    u16,
+                    buffer[1..3],
+                ) orelse return UnpackError.ValueInvalid;
+                return 3;
+            },
+            .arr32 => {
+                if (buffer.len < 5) {
+                    return UnpackError.BufferUnderRun;
+                }
+                out.* = utils.readIntBounded(
+                    Child,
+                    u32,
+                    buffer[1..5],
+                ) orelse return UnpackError.ValueInvalid;
+                return 5;
+            },
+        },
+        else => return UnpackError.TypeIncompatible,
+    }
+}

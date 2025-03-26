@@ -104,3 +104,25 @@ test "unpack str" {
     );
     try expectEqualDeep("12345", buffer);
 }
+test "unpack array" {
+    var size: usize = undefined;
+    try expectEqual(1, unpack(&[_]u8{0x91}, &size));
+    try expectEqual(1, size);
+
+    try expectEqual(3, unpack(&[_]u8{ 0xDC, 0xFE, 0xEF }, &size));
+    try expectEqual(0xFEEF, size);
+
+    try expectEqual(5, unpack(&[_]u8{ 0xDD, 0xFE, 0xEF, 0xAB, 0xCD }, &size));
+    try expectEqual(0xFEEFABCD, size);
+}
+test "unpack map" {
+    var size: usize = undefined;
+    try expectEqual(1, unpack(&[_]u8{0x81}, &size));
+    try expectEqual(1, size);
+
+    try expectEqual(3, unpack(&[_]u8{ 0xDE, 0xFE, 0xEF }, &size));
+    try expectEqual(0xFEEF, size);
+
+    try expectEqual(5, unpack(&[_]u8{ 0xDF, 0xFE, 0xEF, 0xAB, 0xCD }, &size));
+    try expectEqual(0xFEEFABCD, size);
+}

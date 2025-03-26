@@ -55,21 +55,6 @@ pub fn packInt(writer: anytype, value: anytype) @TypeOf(writer).Error!void {
 
 const parseFormat = @import("format.zig").parse;
 const UnpackError = @import("error.zig").UnpackError;
-fn readInt(
-    comptime Result: type,
-    comptime Value: type,
-    buffer: *const [@divExact(@typeInfo(Value).int.bits, 8)]u8,
-) ?Result {
-    const maxInt = std.math.maxInt;
-    const minInt = std.math.minInt;
-
-    const value = std.mem.readInt(Value, buffer, .big);
-    if (minInt(Result) <= value and value <= maxInt(Result)) {
-        return @intCast(value);
-    } else {
-        return null;
-    }
-}
 
 pub fn unpackInt(buffer: []const u8, out: anytype) UnpackError!usize {
     const info = @typeInfo(@TypeOf(out));
@@ -103,16 +88,16 @@ pub fn unpackInt(buffer: []const u8, out: anytype) UnpackError!usize {
     }
 
     out.* = switch (format.int) {
-        .pos => readInt(Child, u8, buffer[0..1]),
-        .neg => readInt(Child, i8, buffer[0..1]),
-        .u8 => readInt(Child, u8, buffer[1..2]),
-        .i8 => readInt(Child, i8, buffer[1..2]),
-        .u16 => readInt(Child, u16, buffer[1..3]),
-        .i16 => readInt(Child, i16, buffer[1..3]),
-        .u32 => readInt(Child, u32, buffer[1..5]),
-        .i32 => readInt(Child, i32, buffer[1..5]),
-        .u64 => readInt(Child, u64, buffer[1..9]),
-        .i64 => readInt(Child, i64, buffer[1..9]),
+        .pos => utils.readIntBounded(Child, u8, buffer[0..1]),
+        .neg => utils.readIntBounded(Child, i8, buffer[0..1]),
+        .u8 => utils.readIntBounded(Child, u8, buffer[1..2]),
+        .i8 => utils.readIntBounded(Child, i8, buffer[1..2]),
+        .u16 => utils.readIntBounded(Child, u16, buffer[1..3]),
+        .i16 => utils.readIntBounded(Child, i16, buffer[1..3]),
+        .u32 => utils.readIntBounded(Child, u32, buffer[1..5]),
+        .i32 => utils.readIntBounded(Child, i32, buffer[1..5]),
+        .u64 => utils.readIntBounded(Child, u64, buffer[1..9]),
+        .i64 => utils.readIntBounded(Child, i64, buffer[1..9]),
     } orelse return UnpackError.ValueInvalid;
 
     return size;

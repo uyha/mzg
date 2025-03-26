@@ -10,10 +10,15 @@ pub fn unpack(buffer: []const u8, out: anytype) mzg.UnpackError!usize {
     const Child = info.pointer.child;
 
     switch (@typeInfo(Child)) {
-        .void => return @import("nil.zig").unpackNil(buffer, out),
-        .bool => return @import("bool.zig").unpackBool(buffer, out),
-        .int => return @import("int.zig").unpackInt(buffer, out),
-        .float => return @import("float.zig").unpackFloat(buffer, out),
+        .void => return mzg.unpackNil(buffer, out),
+        .bool => return mzg.unpackBool(buffer, out),
+        .int => switch (try mzg.format.parse(buffer)) {
+            .int => return mzg.unpackInt(buffer, out),
+            .array => return mzg.unpackArray(buffer, out),
+            .map => return mzg.unpackMap(buffer, out),
+            else => return mzg.UnpackError.TypeIncompatible,
+        },
+        .float => return mzg.unpackFloat(buffer, out),
         .optional => switch (try mzg.format.parse(buffer)) {
             .nil => {
                 out.* = null;
