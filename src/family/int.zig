@@ -1,12 +1,6 @@
-const std = @import("std");
-
 const builtin = @import("builtin");
-
+const std = @import("std");
 const utils = @import("../utils.zig");
-const NativeUsize = utils.NativeUsize;
-const asBigEndianBytes = utils.asBigEndianBytes;
-
-const PackError = @import("../error.zig").PackError;
 
 // Originally, there was a `behavior` parameter that contains a `priority` field that
 // specifies if the packing procedure should prioritize for the smallest amount of byte
@@ -17,20 +11,16 @@ const PackError = @import("../error.zig").PackError;
 // (almost always is). Even when the cost of the writing is 0 (a null writer), no
 // statistically significance is found between the `.size` and `.speed` priority. Hence,
 // the optimization for size is chosen to always be the behavior.
-pub fn packIntWithEndian(
-    comptime endian: std.builtin.Endian,
-    writer: anytype,
-    input: anytype,
-) @TypeOf(writer).Error!void {
+pub fn packInt(writer: anytype, value: anytype) @TypeOf(writer).Error!void {
     const maxInt = std.math.maxInt;
     const minInt = std.math.minInt;
-    const Input = @TypeOf(input);
+    const Input = @TypeOf(value);
 
     comptime switch (@typeInfo(Input)) {
-        .comptime_int => if (input < minInt(i64) or input > maxInt(u64)) {
+        .comptime_int => if (value < minInt(i64) or value > maxInt(u64)) {
             @compileError(std.fmt.comptimePrint(
                 "cannot pack input outside of [-2^63, 2^64 -1], input is {}",
-                .{input},
+                .{value},
             ));
         },
         .int => |int| if (int.bits > 64) {
@@ -42,57 +32,47 @@ pub fn packIntWithEndian(
         else => @compileError(@typeName(Input) ++ " cannot be packed as an int"),
     };
 
-    if (-32 <= input and input <= maxInt(u7)) {
-        return try writer.writeAll(&[_]u8{@bitCast(@as(i8, @intCast(input)))});
+    if (-32 <= value and value <= maxInt(u7)) {
+        return try writer.writeAll(&[_]u8{@bitCast(@as(i8, @intCast(value)))});
     }
 
-    if (maxInt(u7) < input) {
+    if (maxInt(u7) < value) {
         inline for (.{ u8, u16, u32, u64 }) |T| {
-            if (input <= maxInt(T)) {
-                try writer.writeAll(& //
-                    [_]u8{marker(T)} //marker
-                    ++ asBigEndianBytes(endian, @as(T, @intCast(input))) // value
-                );
-                return;
+            if (value <= maxInt(T)) {
+                return writer.writeAll(&utils.header(T, marker(T), @intCast(value)));
             }
         }
         unreachable;
     }
 
     inline for (.{ i8, i16, i32, i64 }) |T| {
-        if (minInt(T) <= input) {
-            try writer.writeAll(& //
-                [_]u8{marker(T)} //marker
-                ++ asBigEndianBytes(endian, @as(T, @intCast(input))) // value
-            );
-            return;
+        if (minInt(T) <= value) {
+            return writer.writeAll(&utils.header(T, marker(T), @intCast(value)));
         }
     }
     unreachable;
 }
 
-pub fn packInt(
-    writer: anytype,
-    input: anytype,
-) @TypeOf(writer).Error!void {
-    return packIntWithEndian(
-        comptime builtin.target.cpu.arch.endian(),
-        writer,
-        input,
-    );
-}
-
 const parseFormat = @import("../unpack.zig").parseFormat;
 const UnpackError = @import("../error.zig").UnpackError;
 pub const Int = enum { pos, neg, u8, u16, u32, u64, i8, i16, i32, i64 };
-pub fn unpackIntWithEndian(
-    comptime endian: std.builtin.Endian,
-    buffer: []const u8,
-    out: anytype,
-) UnpackError!usize {
+fn readInt(
+    comptime Result: type,
+    comptime Value: type,
+    buffer: *const [@divExact(@typeInfo(Value).int.bits, 8)]u8,
+) ?Result {
     const maxInt = std.math.maxInt;
     const minInt = std.math.minInt;
 
+    const value = std.mem.readInt(Value, buffer, .big);
+    if (minInt(Result) <= value and value <= maxInt(Result)) {
+        return @intCast(value);
+    } else {
+        return null;
+    }
+}
+
+pub fn unpackInt(buffer: []const u8, out: anytype) UnpackError!usize {
     const info = @typeInfo(@TypeOf(out));
     if (comptime info != .pointer or info.pointer.size != .one or info.pointer.is_const) {
         @compileError("`out` has to be a pointer to an int");
@@ -123,38 +103,20 @@ pub fn unpackIntWithEndian(
         return UnpackError.BufferUnderRun;
     }
 
-    const parse = struct {
-        fn parse(comptime Raw: type, content: []const u8) UnpackError!Raw {
-            var raw: Raw = undefined;
-            @memcpy(std.mem.asBytes(&raw), content);
-            if (comptime endian == .little) {
-                std.mem.reverse(u8, std.mem.asBytes(&raw));
-            }
-            if (raw < minInt(Child) or maxInt(Child) < raw) {
-                return UnpackError.ValueInvalid;
-            }
-            return raw;
-        }
-    }.parse;
-
     out.* = switch (format.int) {
-        .pos => @intCast(try parse(u8, buffer[0..size])),
-        .neg => @intCast(try parse(i8, buffer[0..size])),
-        .u8 => @intCast(try parse(u8, buffer[1..size])),
-        .u16 => @intCast(try parse(u16, buffer[1..size])),
-        .u32 => @intCast(try parse(u32, buffer[1..size])),
-        .u64 => @intCast(try parse(u64, buffer[1..size])),
-        .i8 => @intCast(try parse(i8, buffer[1..size])),
-        .i16 => @intCast(try parse(i16, buffer[1..size])),
-        .i32 => @intCast(try parse(i32, buffer[1..size])),
-        .i64 => @intCast(try parse(i64, buffer[1..size])),
-    };
+        .pos => readInt(Child, u8, buffer[0..1]),
+        .neg => readInt(Child, i8, buffer[0..1]),
+        .u8 => readInt(Child, u8, buffer[1..2]),
+        .i8 => readInt(Child, i8, buffer[1..2]),
+        .u16 => readInt(Child, u16, buffer[1..3]),
+        .i16 => readInt(Child, i16, buffer[1..3]),
+        .u32 => readInt(Child, u32, buffer[1..5]),
+        .i32 => readInt(Child, i32, buffer[1..5]),
+        .u64 => readInt(Child, u64, buffer[1..9]),
+        .i64 => readInt(Child, i64, buffer[1..9]),
+    } orelse return UnpackError.ValueInvalid;
 
     return size;
-}
-
-pub fn unpackInt(buffer: []const u8, out: anytype) UnpackError!usize {
-    return unpackIntWithEndian(comptime builtin.target.cpu.arch.endian(), buffer, out);
 }
 
 fn marker(comptime T: type) u8 {
@@ -167,7 +129,7 @@ fn marker(comptime T: type) u8 {
         i16 => 0xD1,
         i32 => 0xD2,
         i64 => 0xD3,
-        usize => marker(NativeUsize()),
+        usize => marker(utils.NativeUsize()),
         else => @compileError(@typeName(T) ++ " cannot be pack as an int"),
     };
 }

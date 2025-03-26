@@ -1,10 +1,6 @@
-const std = @import("std");
-
 const builtin = @import("builtin");
-const target_endian = builtin.target.cpu.arch.endian();
-
+const std = @import("std");
 const utils = @import("../utils.zig");
-const asBigEndianBytes = utils.asBigEndianBytes;
 
 const PackError = @import("../error.zig").PackError;
 
@@ -19,16 +15,10 @@ pub fn packStr(writer: anytype, input: []const u8) PackError(@TypeOf(writer))!vo
             try writer.writeAll(&[_]u8{ 0xD9, @as(u8, @intCast(len)) });
         },
         maxInt(u8) + 1...maxInt(u16) => |len| {
-            try writer.writeAll(& //
-                [_]u8{0xDA} //marker
-                ++ asBigEndianBytes(target_endian, @as(u16, @intCast(len))) // value
-            );
+            try writer.writeAll(&utils.header(u16, 0xDA, @intCast(len)));
         },
         maxInt(u16) + 1...maxInt(u32) => |len| {
-            try writer.writeAll(& //
-                [_]u8{0xDB} //marker
-                ++ asBigEndianBytes(target_endian, @as(u32, @intCast(len))) // value
-            );
+            try writer.writeAll(&utils.header(u32, 0xDB, @intCast(len)));
         },
         else => return error.ValueInvalid,
     }

@@ -161,9 +161,7 @@ pub fn unpack(buffer: []const u8, out: anytype) UnpackError!usize {
                 return Child.mzgUnpack(buffer, out);
             }
 
-            const format = try parseFormat(buffer);
-
-            switch (format) {
+            switch (try parseFormat(buffer)) {
                 .int => {
                     var raw: E.tag_type = undefined;
                     if (unpack(buffer, &raw)) |size| {
@@ -188,20 +186,16 @@ pub fn unpack(buffer: []const u8, out: anytype) UnpackError!usize {
                 else => return UnpackError.TypeIncompatible,
             }
         },
-        .pointer => |ptr| switch (ptr.size) {
-            .slice => {
-                if (ptr.child == u8) {
-                    const format = try parseFormat(buffer);
-                    return switch (format) {
-                        .str => @import("family/str.zig").unpackStr(buffer, out),
-                        .bin => @import("family/bin.zig").unpackBin(buffer, out),
-                        else => UnpackError.TypeIncompatible,
-                    };
-                } else {
-                    @compileError("'" ++ @typeName(Out) ++ "' is not supported");
-                }
-            },
-            else => @compileError("'" ++ @typeName(Out) ++ "' is not supported"),
+        .pointer => {
+            if (Child != []const u8) {
+                @compileError("'" ++ @typeName(Out) ++ "' is not supported");
+            }
+            const format = try parseFormat(buffer);
+            return switch (format) {
+                .str => @import("family/str.zig").unpackStr(buffer, out),
+                .bin => @import("family/bin.zig").unpackBin(buffer, out),
+                else => UnpackError.TypeIncompatible,
+            };
         },
         else => @compileError("'" ++ @typeName(Out) ++ "' is not supported"),
     }

@@ -1,18 +1,9 @@
-const std = @import("std");
-
 const builtin = @import("builtin");
-
+const std = @import("std");
 const utils = @import("../utils.zig");
-const asBigEndianBytes = utils.asBigEndianBytes;
 
-const PackError = @import("../error.zig").PackError;
-
-pub fn packFloatWithEndian(
-    comptime endian: std.builtin.Endian,
-    writer: anytype,
-    input: anytype,
-) PackError(@TypeOf(writer))!void {
-    const Input = @TypeOf(input);
+pub fn packFloat(writer: anytype, value: anytype) @TypeOf(writer).Error!void {
+    const Input = @TypeOf(value);
 
     comptime switch (@typeInfo(Input)) {
         .comptime_float => {
@@ -31,29 +22,14 @@ pub fn packFloatWithEndian(
     };
 
     switch (comptime Input) {
-        comptime_float => {
-            try writer.writeAll(& //
-                [_]u8{0xCB} // marker
-                ++ asBigEndianBytes(endian, @as(f64, input)) // value
-            );
+        f16, f32 => {
+            try writer.writeAll(&utils.header(u32, 0xCA, @bitCast(@as(f32, value))));
         },
-        f16 => {
-            try writer.writeAll(& //
-                [_]u8{0xCa} //marker
-                ++ asBigEndianBytes(endian, @as(f32, input)) // value
-            );
-        },
-        f32, f64 => {
-            try writer.writeAll(& //
-                [_]u8{if (Input == f32) 0xCA else 0xCB} //marker
-                ++ asBigEndianBytes(endian, input) // value
-            );
+        comptime_float, f64 => {
+            try writer.writeAll(&utils.header(u64, 0xCB, @bitCast(@as(f64, value))));
         },
         else => unreachable,
     }
-}
-pub fn packFloat(writer: anytype, input: anytype) PackError(@TypeOf(writer))!void {
-    return packFloatWithEndian(comptime builtin.target.cpu.arch.endian(), writer, input);
 }
 
 const parseFormat = @import("../unpack.zig").parseFormat;

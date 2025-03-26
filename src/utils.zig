@@ -11,23 +11,12 @@ pub fn NativeUsize() type {
     };
 }
 
-pub inline fn asBigEndianBytes(
-    comptime endian: std.builtin.Endian,
-    input: anytype,
-) [@sizeOf(@TypeOf(input))]u8 {
-    const Input = @TypeOf(input);
-    const raw = raw: switch (Input) {
-        f32, f64 => |Float| {
-            const Target = if (Float == f32) u32 else u64;
-            break :raw @as(Target, @bitCast(input));
-        },
-        u8, u16, u32, u64, i8, i16, i32, i64 => input,
-        usize => @as(NativeUsize(), input),
-        else => @compileError(std.fmt.comptimePrint(
-            "{s} is not supported by this function",
-            .{@typeName(Input)},
-        )),
-    };
-
-    return std.mem.toBytes(if (endian == .little) @byteSwap(raw) else raw);
+pub fn header(
+    comptime Value: type,
+    marker: u8,
+    value: Value,
+) [1 + @sizeOf(Value)]u8 {
+    var content = [1]u8{marker} ++ [1]u8{0} ** @sizeOf(Value);
+    std.mem.writeInt(Value, content[1..], value, .big);
+    return content;
 }

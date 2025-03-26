@@ -1,10 +1,6 @@
-const std = @import("std");
-const maxInt = std.math.maxInt;
-
 const builtin = @import("builtin");
-
+const std = @import("std");
 const utils = @import("../utils.zig");
-const asBigEndianBytes = utils.asBigEndianBytes;
 
 const PackError = @import("../error.zig").PackError;
 
@@ -16,8 +12,9 @@ pub const Ext = struct {
         return .{ .type = @"type", .size = size };
     }
 };
-pub fn packExt(writer: anytype, ext: Ext) PackError(@TypeOf(writer))!void {
-    const target_endian = comptime builtin.target.cpu.arch.endian();
+pub fn packExt(writer: anytype, ext: Ext) @TypeOf(writer).Error!void {
+    const maxInt = std.math.maxInt;
+
     switch (ext.size) {
         1 => try writer.writeAll(&[2]u8{ 0xD4, @bitCast(ext.type) }),
         2 => try writer.writeAll(&[2]u8{ 0xD5, @bitCast(ext.type) }),
@@ -28,15 +25,11 @@ pub fn packExt(writer: anytype, ext: Ext) PackError(@TypeOf(writer))!void {
             try writer.writeAll(&[3]u8{ 0xC7, @intCast(size), @bitCast(ext.type) });
         },
         maxInt(u8) + 1...maxInt(u16) => |size| {
-            const buffer = [_]u8{0xC8} // marker
-                ++ asBigEndianBytes(target_endian, @as(u16, @intCast(size))) // size
-                ++ [_]u8{@bitCast(ext.type)}; // type
+            const buffer = utils.header(u16, 0xC8, @intCast(size)) ++ [1]u8{@bitCast(ext.type)};
             try writer.writeAll(&buffer);
         },
         maxInt(u16) + 1...maxInt(u32) => |size| {
-            const buffer = [_]u8{0xC9} // marker
-                ++ asBigEndianBytes(target_endian, size) // size
-                ++ [_]u8{@bitCast(ext.type)}; // type
+            const buffer = utils.header(u32, 0xC9, @intCast(size)) ++ [1]u8{@bitCast(ext.type)};
             try writer.writeAll(&buffer);
         },
     }
@@ -84,34 +77,30 @@ pub const Timestamp = struct {
     }
 };
 
-pub fn packTimestamp(
-    writer: anytype,
-    timestamp: Timestamp,
-) PackError(@TypeOf(writer))!void {
-    const target_endian = comptime builtin.target.cpu.arch.endian();
+pub fn packTimestamp(writer: anytype, value: Timestamp) PackError(@TypeOf(writer))!void {
+    const maxInt = std.math.maxInt;
 
-    if (timestamp.nano > 999_999_999) {
+    if (value.nano > 999_999_999) {
         return error.ValueInvalid;
     }
 
-    if (timestamp.nano == 0 and 0 <= timestamp.sec and timestamp.sec <= maxInt(u32)) {
-        try writer.writeAll(& //
-            [_]u8{ 0xD6, @bitCast(@as(i8, @intCast(-1))) } // marker
-            ++ asBigEndianBytes(target_endian, @as(u32, @intCast(timestamp.sec))) // value
+    if (value.nano == 0 and 0 <= value.sec and value.sec <= maxInt(u32)) {
+        var content = [_]u8{ 0xD6, 0xFF } ++ [1]u8{0} ** 4;
+        std.mem.writeInt(u32, content[2..], @intCast(value.sec), .big);
+        try writer.writeAll(&content);
+    } else if (0 <= value.sec and value.sec <= maxInt(u34)) {
+        var content = [_]u8{ 0xD7, 0xFF } ++ [1]u8{0} ** 8;
+        std.mem.writeInt(
+            u64,
+            content[2..],
+            @shlExact(@as(u64, value.nano), 34) | @as(u64, @intCast(value.sec)),
+            .big,
         );
-    } else if (0 <= timestamp.sec and timestamp.sec <= maxInt(u34)) {
-        try writer.writeAll(& //
-            [_]u8{ 0xD7, @bitCast(@as(i8, @intCast(-1))) } // marker
-            ++ asBigEndianBytes(target_endian, @as(
-                u64,
-                @shlExact(@as(u64, timestamp.nano), 34) | @as(u64, @intCast(timestamp.sec)),
-            )) // value
-        );
+        try writer.writeAll(&content);
     } else {
-        try writer.writeAll(& //
-            [_]u8{ 0xC7, 12, @bitCast(@as(i8, @intCast(-1))) } // marker
-            ++ asBigEndianBytes(target_endian, timestamp.nano) // nanoseconds
-            ++ asBigEndianBytes(target_endian, timestamp.sec) // seconds
-        );
+        var content = [_]u8{ 0xC7, 0x0C, 0xFF } ++ [1]u8{0} ** 12;
+        std.mem.writeInt(u32, content[3..7], value.nano, .big);
+        std.mem.writeInt(i64, content[7..], value.sec, .big);
+        try writer.writeAll(&content);
     }
 }
