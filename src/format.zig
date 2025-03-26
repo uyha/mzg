@@ -9,15 +9,15 @@ pub const Map = enum { fix, map16, map32 };
 pub const Str = enum { fix, str8, str16, str32 };
 
 pub const Format = union(enum) {
-    nil: void,
-    bool: bool,
-    int: Int,
-    float: Float,
-    str: Str,
-    bin: Bin,
     array: Array,
-    map: Map,
+    bin: Bin,
+    bool: bool,
     ext: Ext,
+    float: Float,
+    int: Int,
+    map: Map,
+    nil: void,
+    str: Str,
 
     const Self = @This();
     pub fn size(self: Self) usize {

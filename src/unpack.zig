@@ -34,15 +34,12 @@ pub fn unpack(buffer: []const u8, out: anytype) UnpackError!usize {
             switch (try format.parse(buffer)) {
                 .int => {
                     var raw: E.tag_type = undefined;
-                    if (unpack(buffer, &raw)) |size| {
-                        out.* = std.meta.intToEnum(
-                            Child,
-                            raw,
-                        ) catch return UnpackError.ValueInvalid;
-                        return size;
-                    } else |err| {
-                        return err;
-                    }
+                    const size = try unpack(buffer, &raw);
+                    out.* = std.meta.intToEnum(
+                        Child,
+                        raw,
+                    ) catch return UnpackError.ValueInvalid;
+                    return size;
                 },
                 .str => {
                     var view: []const u8 = undefined;
