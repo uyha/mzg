@@ -55,3 +55,69 @@ pub fn packFloatWithEndian(
 pub fn packFloat(writer: anytype, input: anytype) PackError(@TypeOf(writer))!void {
     return packFloatWithEndian(comptime builtin.target.cpu.arch.endian(), writer, input);
 }
+
+const parseFormat = @import("../unpack.zig").parseFormat;
+const UnpackError = @import("../error.zig").UnpackError;
+pub const Float = enum { f32, f64 };
+pub fn unpackFloatWithEndian(
+    comptime endian: std.builtin.Endian,
+    buffer: []const u8,
+    out: anytype,
+) UnpackError!usize {
+    const info = @typeInfo(@TypeOf(out));
+    if (comptime info != .pointer or info.pointer.size != .one or info.pointer.is_const) {
+        @compileError("`out` has to be a mutable singe-item pointer");
+    }
+    switch (@typeInfo(info.pointer.child)) {
+        .float => |float| {
+            switch (float.bits) {
+                32, 64 => {},
+                else => @compileError(std.fmt.comptimePrint(
+                    "Cannot unpack to a float with {} bits, only f32 and f64 are allowed",
+                    .{float.bits},
+                )),
+            }
+        },
+        else => return UnpackError.TypeIncompatible,
+    }
+
+    const format = try parseFormat(buffer);
+
+    if (format != .float) {
+        return UnpackError.TypeIncompatible;
+    }
+
+    const size: usize = switch (format.float) {
+        .f32 => 5,
+        .f64 => 9,
+    };
+
+    if (buffer.len < size) {
+        return UnpackError.BufferUnderRun;
+    }
+    if (@sizeOf(info.pointer.child) < size - 1) {
+        return UnpackError.ValueInvalid;
+    }
+
+    const parse = struct {
+        fn parse(comptime Raw: type, content: []const u8) UnpackError!Raw {
+            var raw: Raw = undefined;
+            @memcpy(std.mem.asBytes(&raw), content);
+            if (comptime endian == .little) {
+                std.mem.reverse(u8, std.mem.asBytes(&raw));
+            }
+            return raw;
+        }
+    }.parse;
+
+    out.* = switch (format.float) {
+        .f32 => @floatCast(try parse(f32, buffer[1..size])),
+        .f64 => @floatCast(try parse(f64, buffer[1..size])),
+    };
+
+    return size;
+}
+
+pub fn unpackFloat(buffer: []const u8, out: anytype) UnpackError!usize {
+    return unpackFloatWithEndian(comptime builtin.target.cpu.arch.endian(), buffer, out);
+}

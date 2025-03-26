@@ -82,6 +82,81 @@ pub fn packInt(
     );
 }
 
+const parseFormat = @import("../unpack.zig").parseFormat;
+const UnpackError = @import("../error.zig").UnpackError;
+pub const Int = enum { pos, neg, u8, u16, u32, u64, i8, i16, i32, i64 };
+pub fn unpackIntWithEndian(
+    comptime endian: std.builtin.Endian,
+    buffer: []const u8,
+    out: anytype,
+) UnpackError!usize {
+    const maxInt = std.math.maxInt;
+    const minInt = std.math.minInt;
+
+    const info = @typeInfo(@TypeOf(out));
+    if (comptime info != .pointer or info.pointer.size != .one or info.pointer.is_const) {
+        @compileError("`out` has to be a pointer to an int");
+    }
+
+    const Child = info.pointer.child;
+
+    switch (@typeInfo(Child)) {
+        .int => {},
+        else => @compileError("`out` has to be a pointer to an int"),
+    }
+
+    const format = try parseFormat(buffer);
+
+    if (format != .int) {
+        return UnpackError.TypeIncompatible;
+    }
+
+    const size: usize = switch (format.int) {
+        .pos, .neg => 1,
+        .u8, .i8 => 2,
+        .u16, .i16 => 3,
+        .u32, .i32 => 5,
+        .u64, .i64 => 9,
+    };
+
+    if (buffer.len < size) {
+        return UnpackError.BufferUnderRun;
+    }
+
+    const parse = struct {
+        fn parse(comptime Raw: type, content: []const u8) UnpackError!Raw {
+            var raw: Raw = undefined;
+            @memcpy(std.mem.asBytes(&raw), content);
+            if (comptime endian == .little) {
+                std.mem.reverse(u8, std.mem.asBytes(&raw));
+            }
+            if (raw < minInt(Child) or maxInt(Child) < raw) {
+                return UnpackError.ValueInvalid;
+            }
+            return raw;
+        }
+    }.parse;
+
+    out.* = switch (format.int) {
+        .pos => @intCast(try parse(u8, buffer[0..size])),
+        .neg => @intCast(try parse(i8, buffer[0..size])),
+        .u8 => @intCast(try parse(u8, buffer[1..size])),
+        .u16 => @intCast(try parse(u16, buffer[1..size])),
+        .u32 => @intCast(try parse(u32, buffer[1..size])),
+        .u64 => @intCast(try parse(u64, buffer[1..size])),
+        .i8 => @intCast(try parse(i8, buffer[1..size])),
+        .i16 => @intCast(try parse(i16, buffer[1..size])),
+        .i32 => @intCast(try parse(i32, buffer[1..size])),
+        .i64 => @intCast(try parse(i64, buffer[1..size])),
+    };
+
+    return size;
+}
+
+pub fn unpackInt(buffer: []const u8, out: anytype) UnpackError!usize {
+    return unpackIntWithEndian(comptime builtin.target.cpu.arch.endian(), buffer, out);
+}
+
 fn marker(comptime T: type) u8 {
     return switch (comptime T) {
         u8 => 0xCC,

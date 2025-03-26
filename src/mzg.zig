@@ -34,3 +34,6 @@ pub fn packerWithBehavior(
 ) Packer(behavior, @TypeOf(writer)) {
     return .init(writer);
 }
+
+pub const UnpackError = @import("error.zig").UnpackError;
+pub const unpack = @import("unpack.zig");
