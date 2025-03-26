@@ -1,5 +1,5 @@
 test "packNil" {
-    const expect = @import("../utils.zig").expect;
+    const expect = @import("utils.zig").expect;
 
     const packNil = @import("mzg").packNil;
 

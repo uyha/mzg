@@ -52,10 +52,10 @@ const Ext = enum {
 pub const Format = union(enum) {
     nil: void,
     bool: bool,
-    int: @import("family/int.zig").Int,
-    float: @import("family/float.zig").Float,
-    str: @import("family/str.zig").Str,
-    bin: @import("family/bin.zig").Bin,
+    int: @import("int.zig").Int,
+    float: @import("float.zig").Float,
+    str: @import("str.zig").Str,
+    bin: @import("bin.zig").Bin,
     array: Array,
     map: Map,
     ext: Ext,
@@ -144,8 +144,8 @@ pub fn unpack(buffer: []const u8, out: anytype) UnpackError!usize {
             },
             else => return UnpackError.TypeIncompatible,
         },
-        .int => return @import("family/int.zig").unpackInt(buffer, out),
-        .float => return @import("family/float.zig").unpackFloat(buffer, out),
+        .int => return @import("int.zig").unpackInt(buffer, out),
+        .float => return @import("float.zig").unpackFloat(buffer, out),
         .optional => switch (try parseFormat(buffer)) {
             .nil => {
                 out.* = null;
@@ -192,8 +192,8 @@ pub fn unpack(buffer: []const u8, out: anytype) UnpackError!usize {
             }
             const format = try parseFormat(buffer);
             return switch (format) {
-                .str => @import("family/str.zig").unpackStr(buffer, out),
-                .bin => @import("family/bin.zig").unpackBin(buffer, out),
+                .str => @import("str.zig").unpackStr(buffer, out),
+                .bin => @import("bin.zig").unpackBin(buffer, out),
                 else => UnpackError.TypeIncompatible,
             };
         },

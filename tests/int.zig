@@ -1,5 +1,5 @@
 test "packInt" {
-    const expect = @import("../utils.zig").expect;
+    const expect = @import("utils.zig").expect;
 
     const std = @import("std");
     const maxInt = std.math.maxInt;

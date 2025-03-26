@@ -1,4 +1,4 @@
-const PackError = @import("../error.zig").PackError;
+const PackError = @import("error.zig").PackError;
 
 pub fn packBool(
     writer: anytype,

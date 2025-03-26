@@ -1,8 +1,8 @@
 const builtin = @import("builtin");
 const std = @import("std");
-const utils = @import("../utils.zig");
+const utils = @import("utils.zig");
 
-const PackError = @import("../error.zig").PackError;
+const PackError = @import("error.zig").PackError;
 
 pub fn packMap(writer: anytype, size: usize) PackError(@TypeOf(writer))!void {
     const maxInt = std.math.maxInt;

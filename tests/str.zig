@@ -1,6 +1,6 @@
 test "packStr" {
     // Cannot actually test for 2 ^ 32 long string since the compilation just freezes
-    const expect = @import("../utils.zig").expect;
+    const expect = @import("utils.zig").expect;
 
     const maxInt = @import("std").math.maxInt;
     const packStr = @import("mzg").packStr;

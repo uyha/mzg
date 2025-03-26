@@ -1,8 +1,8 @@
 const builtin = @import("builtin");
 const std = @import("std");
-const utils = @import("../utils.zig");
+const utils = @import("utils.zig");
 
-const PackError = @import("../error.zig").PackError;
+const PackError = @import("error.zig").PackError;
 
 pub const Ext = struct {
     type: i8,

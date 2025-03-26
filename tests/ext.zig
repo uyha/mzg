@@ -1,5 +1,5 @@
 test "packExt" {
-    const expect = @import("../utils.zig").expect;
+    const expect = @import("utils.zig").expect;
 
     const maxInt = @import("std").math.maxInt;
 
@@ -51,7 +51,7 @@ test "Timestamp" {
 }
 
 test "packTimestamp" {
-    const expect = @import("../utils.zig").expect;
+    const expect = @import("utils.zig").expect;
 
     const maxInt = @import("std").math.maxInt;
 

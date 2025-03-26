@@ -1,6 +1,6 @@
 test "packBin" {
     // Cannot actually test for 2 ^ 32 long bin since the compilation just freezes
-    const expect = @import("../utils.zig").expect;
+    const expect = @import("utils.zig").expect;
 
     const maxInt = @import("std").math.maxInt;
     const packBin = @import("mzg").packBin;
