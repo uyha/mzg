@@ -116,6 +116,16 @@ test "pack struct" {
     try expect(.stringly, &[_]u8{0x01}, C{ .a = 1, .b = 1.0 });
     try expect(.stringly, &[_]u8{0x01}, C{ .a = 1, .b = null });
     try expect(.full_stringly, &[_]u8{0x01}, C{ .a = 1, .b = null });
+
+    const p: packed struct { a: u4, b: u4 } = .{ .a = 1, .b = 2 };
+    switch (@import("builtin").target.cpu.arch.endian()) {
+        .little => {
+            try expect(.default, &[_]u8{0x21}, p);
+        },
+        .big => {
+            try expect(.default, &[_]u8{0x12}, p);
+        },
+    }
 }
 test "pack []u8 like" {
     const content = [_]u8{1};

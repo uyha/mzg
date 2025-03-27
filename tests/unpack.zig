@@ -163,4 +163,17 @@ test "unpack struct" {
     var nest: struct { u32, C } = undefined;
     try expectEqual(3, unpack(&[_]u8{ 0x92, 0x01, 0x01 }, &nest));
     try expectEqualDeep(@TypeOf(nest){ 0x01, C{ .a = 1, .b = null } }, nest);
+
+    var p: packed struct { a: u4, b: u4 } = undefined;
+    try expectEqual(1, unpack(&[_]u8{0x12}, &p));
+    switch (@import("builtin").target.cpu.arch.endian()) {
+        .little => {
+            try expectEqual(2, p.a);
+            try expectEqual(1, p.b);
+        },
+        .big => {
+            try expectEqual(1, p.a);
+            try expectEqual(2, p.b);
+        },
+    }
 }

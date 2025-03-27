@@ -175,6 +175,9 @@ pub fn packWithOptions(
                 }
                 return;
             }
+            if (info.layout == .@"packed") {
+                return mzg.packInt(@as(info.backing_integer.?, @bitCast(value)), writer);
+            }
 
             switch (options.@"struct") {
                 .array => {

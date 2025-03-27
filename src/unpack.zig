@@ -117,6 +117,10 @@ pub fn unpack(buffer: []const u8, out: anytype) mzg.UnpackError!usize {
                 return size;
             }
 
+            if (child.layout == .@"packed") {
+                return unpack(buffer, @as(*child.backing_integer.?, @ptrCast(out)));
+            }
+
             switch (try mzg.format.parse(buffer)) {
                 .array => {
                     size += try unpack(buffer, &len);
