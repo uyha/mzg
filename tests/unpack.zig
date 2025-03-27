@@ -147,4 +147,21 @@ test "unpack struct" {
 
     try expectEqual(7, unpack(&[_]u8{ 0x82, 0xA1, 0x61, 0x00, 0xA1, 0x62, 0x01 }, &s));
     try expectEqualDeep(@TypeOf(s){ .a = 0, .b = 1 }, s);
+
+    const C = struct {
+        a: u32,
+        b: ?[]u8,
+
+        pub fn mzgUnpack(buffer: []const u8, out: *@This()) UnpackError!usize {
+            out.b = null;
+            return @import("mzg").unpackInt(buffer, &out.a);
+        }
+    };
+    var c: C = undefined;
+    try expectEqual(1, unpack(&[_]u8{0x01}, &c));
+    try expectEqualDeep(C{ .a = 1, .b = null }, c);
+
+    var nest: struct { u32, C } = undefined;
+    try expectEqual(3, unpack(&[_]u8{ 0x92, 0x01, 0x01 }, &nest));
+    try expectEqualDeep(@TypeOf(nest){ 0x01, C{ .a = 1, .b = null } }, nest);
 }
