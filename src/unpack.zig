@@ -31,7 +31,7 @@ pub fn unpack(buffer: []const u8, out: anytype) mzg.UnpackError!usize {
         },
         .@"enum" => |E| {
             if (std.meta.hasFn(Child, "mzgUnpack")) {
-                return Child.mzgUnpack(buffer, out);
+                return out.mzgUnpack(buffer);
             }
 
             switch (try mzg.format.parse(buffer)) {
@@ -58,7 +58,7 @@ pub fn unpack(buffer: []const u8, out: anytype) mzg.UnpackError!usize {
         },
         .@"union" => |child| {
             if (std.meta.hasFn(Child, "mzgUnpack")) {
-                return Child.mzgUnpack(buffer, out);
+                return out.mzgUnpack(buffer);
             }
 
             if (child.tag_type == null) {
@@ -97,7 +97,7 @@ pub fn unpack(buffer: []const u8, out: anytype) mzg.UnpackError!usize {
         },
         .@"struct" => |child| {
             if (std.meta.hasFn(Child, "mzgUnpack")) {
-                return Child.mzgUnpack(buffer, out);
+                return out.mzgUnpack(buffer);
             }
 
             var size: usize = 0;

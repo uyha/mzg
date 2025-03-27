@@ -76,9 +76,9 @@ test "unpack enum" {
 
     const C = enum {
         a,
-        pub fn mzgUnpack(buffer: []const u8, out: anytype) UnpackError!usize {
+        pub fn mzgUnpack(self: *@This(), buffer: []const u8) UnpackError!usize {
             _ = buffer;
-            _ = out;
+            _ = self;
 
             return 0;
         }
@@ -151,9 +151,9 @@ test "unpack struct" {
         a: u32,
         b: ?[]u8,
 
-        pub fn mzgUnpack(buffer: []const u8, out: *@This()) UnpackError!usize {
-            out.b = null;
-            return @import("mzg").unpackInt(buffer, &out.a);
+        pub fn mzgUnpack(self: *@This(), buffer: []const u8) UnpackError!usize {
+            self.b = null;
+            return @import("mzg").unpackInt(buffer, &self.a);
         }
     };
     var c: C = undefined;
