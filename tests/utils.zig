@@ -18,7 +18,7 @@ pub fn expect(
 
     const returned = switch (packer_info.params.len) {
         1 => @call(.auto, packer, .{output.writer(t.allocator)}),
-        2 => @call(.auto, packer, .{ output.writer(t.allocator), input }),
+        2 => @call(.auto, packer, .{ input, output.writer(t.allocator) }),
         else => @compileError("WTF"),
     };
 

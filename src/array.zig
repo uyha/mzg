@@ -3,7 +3,7 @@ const std = @import("std");
 const utils = @import("utils.zig");
 
 const PackError = @import("error.zig").PackError;
-pub fn packArray(writer: anytype, size: usize) PackError(@TypeOf(writer))!void {
+pub fn packArray(size: usize, writer: anytype) PackError(@TypeOf(writer))!void {
     const maxInt = std.math.maxInt;
 
     switch (size) {

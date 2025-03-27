@@ -4,7 +4,7 @@ const utils = @import("utils.zig");
 
 const PackError = @import("error.zig").PackError;
 
-pub fn packMap(writer: anytype, size: usize) PackError(@TypeOf(writer))!void {
+pub fn packMap(size: usize, writer: anytype) PackError(@TypeOf(writer))!void {
     const maxInt = std.math.maxInt;
 
     switch (size) {

@@ -11,7 +11,7 @@ const utils = @import("utils.zig");
 // (almost always is). Even when the cost of the writing is 0 (a null writer), no
 // statistically significance is found between the `.size` and `.speed` priority. Hence,
 // the optimization for size is chosen to always be the behavior.
-pub fn packInt(writer: anytype, value: anytype) @TypeOf(writer).Error!void {
+pub fn packInt(value: anytype, writer: anytype) @TypeOf(writer).Error!void {
     const maxInt = std.math.maxInt;
     const minInt = std.math.minInt;
     const Input = @TypeOf(value);

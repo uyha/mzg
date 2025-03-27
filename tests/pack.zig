@@ -1,14 +1,16 @@
 const std = @import("std");
 const mzg = @import("mzg");
-const Behavior = mzg.PackBehavior;
-const packerWithBehavior = mzg.packerWithBehavior;
+const PackOptions = mzg.PackOptions;
 
-fn expect(comptime behavior: Behavior, expected: anytype, input: anytype) !void {
+fn expect(comptime options: PackOptions, expected: anytype, input: anytype) !void {
     var buffer: std.ArrayListUnmanaged(u8) = .empty;
     defer buffer.deinit(std.testing.allocator);
 
-    const p = packerWithBehavior(behavior, buffer.writer(std.testing.allocator));
-    try p.pack(input);
+    try mzg.packWithOptions(
+        input,
+        options,
+        buffer.writer(std.testing.allocator),
+    );
 
     try std.testing.expectEqualDeep(expected, buffer.items);
 }
@@ -47,8 +49,8 @@ test "pack enum" {
 
     const C = enum {
         a,
-        pub fn mzgPack(_: @This(), p: anytype) !void {
-            try p.pack(1);
+        pub fn mzgPack(_: @This(), writer: anytype) !void {
+            try mzg.packInt(1, writer);
         }
     };
     try expect(.default, &[_]u8{0x01}, C.a);
@@ -69,8 +71,8 @@ test "pack tagged union" {
         a: u8,
         b: ?u16,
         c: bool,
-        pub fn mzgPack(_: @This(), p: anytype) !void {
-            try p.pack(1);
+        pub fn mzgPack(_: @This(), writer: anytype) !void {
+            try mzg.packInt(1, writer);
         }
     };
     try expect(.default, &[_]u8{0x01}, C{ .a = 1 });
@@ -106,8 +108,8 @@ test "pack struct" {
         a: u16,
         b: ?f32,
 
-        pub fn mzgPack(_: @This(), p: anytype) !void {
-            try p.pack(1);
+        pub fn mzgPack(_: @This(), writer: anytype) !void {
+            try mzg.packInt(1, writer);
         }
     };
     try expect(.default, &[_]u8{0x01}, C{ .a = 1, .b = 1.0 });

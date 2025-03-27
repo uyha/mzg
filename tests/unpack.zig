@@ -1,5 +1,4 @@
-const unpack = @import("mzg").unpack.unpack;
-const Format = @import("mzg").unpack.Format;
+const unpack = @import("mzg").unpack;
 const UnpackError = @import("mzg").UnpackError;
 
 const std = @import("std");

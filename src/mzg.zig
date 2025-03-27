@@ -26,18 +26,9 @@ pub const format = @import("format.zig");
 
 pub const PackError = @import("error.zig").PackError;
 
-const pack = @import("pack.zig");
-const Packer = pack.Packer;
-pub const PackBehavior = pack.Behavior;
-pub fn packer(writer: anytype) Packer(.default, @TypeOf(writer)) {
-    return .init(writer);
-}
-pub fn packerWithBehavior(
-    comptime behavior: PackBehavior,
-    writer: anytype,
-) Packer(behavior, @TypeOf(writer)) {
-    return .init(writer);
-}
+pub const PackOptions = @import("pack.zig").PackOptions;
+pub const packWithOptions = @import("pack.zig").packWithOptions;
+pub const pack = @import("pack.zig").pack;
 
 pub const UnpackError = @import("error.zig").UnpackError;
-pub const unpack = @import("unpack.zig");
+pub const unpack = @import("unpack.zig").unpack;

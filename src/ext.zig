@@ -12,7 +12,7 @@ pub const Ext = struct {
         return .{ .type = @"type", .size = size };
     }
 };
-pub fn packExt(writer: anytype, ext: Ext) @TypeOf(writer).Error!void {
+pub fn packExt(ext: Ext, writer: anytype) @TypeOf(writer).Error!void {
     const maxInt = std.math.maxInt;
 
     switch (ext.size) {
@@ -72,12 +72,12 @@ pub const Timestamp = struct {
         };
     }
 
-    pub fn mzgPack(self: Self, packer: anytype) !void {
-        return packTimestamp(packer.writer, self);
+    pub fn mzgPack(self: Self, writer: anytype) !void {
+        return packTimestamp(self, writer);
     }
 };
 
-pub fn packTimestamp(writer: anytype, value: Timestamp) PackError(@TypeOf(writer))!void {
+pub fn packTimestamp(value: Timestamp, writer: anytype) PackError(@TypeOf(writer))!void {
     const maxInt = std.math.maxInt;
 
     if (value.nano > 999_999_999) {

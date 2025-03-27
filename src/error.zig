@@ -1,5 +1,8 @@
 pub fn PackError(Writer: type) type {
-    return error{ValueInvalid} || if (@hasDecl(Writer, "Error")) Writer.Error;
+    return error{
+        ValueInvalid,
+        Unsupported,
+    } || if (@hasDecl(Writer, "Error")) Writer.Error;
 }
 
 pub const UnpackError = error{

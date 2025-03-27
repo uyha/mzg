@@ -2,7 +2,7 @@ const builtin = @import("builtin");
 const std = @import("std");
 const utils = @import("utils.zig");
 
-pub fn packFloat(writer: anytype, value: anytype) @TypeOf(writer).Error!void {
+pub fn packFloat(value: anytype, writer: anytype) @TypeOf(writer).Error!void {
     const Input = @TypeOf(value);
 
     comptime switch (@typeInfo(Input)) {
