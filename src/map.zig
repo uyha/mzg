@@ -37,7 +37,12 @@ pub fn unpackMap(buffer: []const u8, out: anytype) UnpackError!usize {
     switch (try parseFormat(buffer)) {
         .map => |array| switch (array) {
             .fix => {
-                out.* = buffer[0] & 0x0F;
+                out.* =
+                    utils.readIntBounded(
+                        Child,
+                        u8,
+                        &[_]u8{buffer[0] & 0x0F},
+                    ) orelse return UnpackError.ValueInvalid;
                 return 1;
             },
             .map16 => {
