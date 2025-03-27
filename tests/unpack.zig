@@ -126,3 +126,13 @@ test "unpack map" {
     try expectEqual(5, unpack(&[_]u8{ 0xDF, 0xFE, 0xEF, 0xAB, 0xCD }, &size));
     try expectEqual(0xFEEFABCD, size);
 }
+test "unpack union" {
+    var u: union(enum) {
+        a: usize,
+    } = undefined;
+    try expectEqual(3, unpack(&[_]u8{ 0x92, 0x00, 0x01 }, &u));
+    try expectEqualDeep(@TypeOf(u){ .a = 1 }, u);
+
+    try expectEqual(4, unpack(&[_]u8{ 0x81, 0xA1, 0x61, 0x02 }, &u));
+    try expectEqualDeep(@TypeOf(u){ .a = 2 }, u);
+}

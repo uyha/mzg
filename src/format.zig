@@ -58,7 +58,7 @@ pub fn parse(buffer: []const u8) UnpackError!Format {
         0x90...0x9F => .{ .array = .fix },
         0xDC => .{ .array = .arr16 },
         0xDD => .{ .array = .arr32 },
-        0x80...0x8F => .{ .array = .fix },
+        0x80...0x8F => .{ .map = .fix },
         0xDE => .{ .map = .map16 },
         0xDF => .{ .map = .map32 },
         0xD4 => .{ .ext = .fix1 },

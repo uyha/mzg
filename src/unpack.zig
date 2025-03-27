@@ -56,6 +56,45 @@ pub fn unpack(buffer: []const u8, out: anytype) mzg.UnpackError!usize {
                 else => return mzg.UnpackError.TypeIncompatible,
             }
         },
+        .@"union" => |child| {
+            if (std.meta.hasFn(Child, "mzgUnpack")) {
+                return Child.mzgUnpack(buffer, out);
+            }
+
+            if (child.tag_type == null) {
+                @compileError("Cannot unpack untagged union '" ++ @typeName(Child) ++ "'");
+            }
+
+            const format = try mzg.format.parse(buffer);
+            const expected_len: u8 = switch (format) {
+                .array => 2,
+                .map => 1,
+                else => return mzg.UnpackError.TypeIncompatible,
+            };
+
+            var size: usize = 0;
+            var len: u8 = undefined;
+
+            size += try unpack(buffer, &len);
+            if (len != expected_len) {
+                return mzg.UnpackError.TypeIncompatible;
+            }
+
+            var tag: child.tag_type.? = undefined;
+            size += try unpack(buffer[size..], &tag);
+
+            inline for (child.fields) |field| {
+                if (std.mem.eql(u8, field.name, @tagName(tag))) {
+                    out.* = @unionInit(Child, field.name, undefined);
+                    size += try unpack(
+                        buffer[size..],
+                        &@field(out.*, field.name),
+                    );
+                    return size;
+                }
+            }
+            return mzg.UnpackError.ValueInvalid;
+        },
         .pointer => {
             if (Child != []const u8) {
                 @compileError("'" ++ @typeName(Out) ++ "' is not supported");
