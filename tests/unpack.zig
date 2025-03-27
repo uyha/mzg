@@ -136,3 +136,15 @@ test "unpack union" {
     try expectEqual(4, unpack(&[_]u8{ 0x81, 0xA1, 0x61, 0x02 }, &u));
     try expectEqualDeep(@TypeOf(u){ .a = 2 }, u);
 }
+test "unpack struct" {
+    var t: struct { u32, u32 } = undefined;
+    try expectEqual(3, unpack(&[_]u8{ 0x92, 0x00, 0x01 }, &t));
+    try expectEqualDeep(.{ 0, 1 }, t);
+
+    var s: struct { a: u32, b: u32 } = undefined;
+    try expectEqual(3, unpack(&[_]u8{ 0x92, 0x00, 0x01 }, &s));
+    try expectEqualDeep(@TypeOf(s){ .a = 0, .b = 1 }, s);
+
+    try expectEqual(7, unpack(&[_]u8{ 0x82, 0xA1, 0x61, 0x00, 0xA1, 0x62, 0x01 }, &s));
+    try expectEqualDeep(@TypeOf(s){ .a = 0, .b = 1 }, s);
+}

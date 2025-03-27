@@ -95,6 +95,64 @@ pub fn unpack(buffer: []const u8, out: anytype) mzg.UnpackError!usize {
             }
             return mzg.UnpackError.ValueInvalid;
         },
+        .@"struct" => |child| {
+            if (std.meta.hasFn(Child, "mzgUnpack")) {
+                return Child.mzgUnpack(buffer, out);
+            }
+
+            var size: usize = 0;
+            var len: usize = 0;
+
+            if (child.is_tuple) {
+                switch (try mzg.format.parse(buffer)) {
+                    .array => size += try unpack(buffer, &len),
+                    else => return mzg.UnpackError.TypeIncompatible,
+                }
+                if (len != child.fields.len) {
+                    return mzg.UnpackError.TypeIncompatible;
+                }
+                inline for (0..child.fields.len) |i| {
+                    size += try unpack(buffer[size..], &out.*[i]);
+                }
+                return size;
+            }
+
+            switch (try mzg.format.parse(buffer)) {
+                .array => {
+                    size += try unpack(buffer, &len);
+                    if (len != child.fields.len) {
+                        return mzg.UnpackError.TypeIncompatible;
+                    }
+
+                    inline for (0..child.fields.len) |i| {
+                        size += try unpack(
+                            buffer[size..],
+                            &@field(out.*, child.fields[i].name),
+                        );
+                    }
+                },
+                .map => {
+                    size += try unpack(buffer, &len);
+
+                    var name: []const u8 = undefined;
+                    for (0..len) |_| {
+                        size += try unpack(buffer[size..], &name);
+
+                        inline for (child.fields) |field| {
+                            if (std.mem.eql(u8, field.name, name)) {
+                                size += try unpack(
+                                    buffer[size..],
+                                    &@field(out.*, field.name),
+                                );
+                                break;
+                            }
+                        }
+                    }
+                },
+                else => return mzg.UnpackError.TypeIncompatible,
+            }
+            return size;
+        },
         .pointer => {
             if (Child != []const u8) {
                 @compileError("'" ++ @typeName(Out) ++ "' is not supported");
