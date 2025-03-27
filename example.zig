@@ -4,12 +4,10 @@ pub fn main() !void {
     var buffer: std.ArrayListUnmanaged(u8) = .empty;
     defer buffer.deinit(allocator);
 
-    const packer = mzg.packerWithBehavior(.{
-        .@"enum" = .value,
-        .skip_null = true,
-    }, buffer.writer(allocator));
-
-    try packer.pack(union(enum) { a: u16, b: u32 }{ .b = 1 });
+    try mzg.pack(
+        union(enum) { a: u16, b: u32 }{ .b = 1 },
+        buffer.writer(allocator),
+    );
 
     std.debug.print("{X:02}\n", .{buffer.items});
 }
