@@ -203,6 +203,16 @@ pub fn Packer(comptime behavior: Behavior, comptime Writer: type) type {
                         },
                     }
                 },
+                .error_union => {
+                    if (value) |payload| {
+                        try mzg.packArray(self.writer, 2);
+                        try mzg.packInt(self.writer, 0);
+                        try self.pack(payload);
+                    } else |err| {
+                        try mzg.packArray(self.writer, 1);
+                        try self.pack(err);
+                    }
+                },
                 .error_set => {
                     return switch (behavior.@"error") {
                         .name => mzg.packStr(self.writer, @errorName(value)),

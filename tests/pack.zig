@@ -115,6 +115,24 @@ test "pack struct" {
     try expect(.stringly, &[_]u8{0x01}, C{ .a = 1, .b = null });
     try expect(.full_stringly, &[_]u8{0x01}, C{ .a = 1, .b = null });
 }
+test "pack error union" {
+    const T = error{SomeError}!?usize;
+    try expect(
+        .default,
+        &[_]u8{ 0x91, 0xCC, @intFromError(error.SomeError) },
+        @as(T, error.SomeError),
+    );
+    try expect(
+        .default,
+        &[_]u8{ 0x92, 0x00, 0xC0 },
+        @as(T, null),
+    );
+    try expect(
+        .default,
+        &[_]u8{ 0x92, 0x00, 0x01 },
+        @as(T, 1),
+    );
+}
 test "pack error" {
     try expect(
         .default,
