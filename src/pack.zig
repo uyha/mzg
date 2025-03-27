@@ -73,6 +73,7 @@ pub const PackOptions = struct {
 ///     * Otherwise, if it is
 ///         * a tuple, all the fields are packed in an `array` in the order they
 ///           are declared.
+///         * a packed struct, its backing integer is packed as an int.
 ///         * a normal struct, if `behavior.@"struct"`
 ///             * is `.array`, the fields are packed in an `array` in the other
 ///               they are declared.

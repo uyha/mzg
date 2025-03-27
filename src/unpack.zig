@@ -1,6 +1,51 @@
 const std = @import("std");
 const mzg = @import("mzg.zig");
 
+/// Unpack `[]const u8` to a Zig value
+///
+/// `out` has to be a single-item pointer
+///
+/// Supported `child` of `out`:
+/// * Zig `void` accepts `nil` messages.
+/// * Zig `bool` accepts `bool` messages.
+/// * Zig runtime ints (<= 64 bits) accept `int` messages, and the length of
+///   `array`/`map` messages.
+/// * Zig `f32` and `f64` accept `float` messages.
+/// * Zig optionals gets assgin `null` if the message is `nil`, else the child type is
+///   unpacked.
+/// * Zig enum:
+///     * If the enum has the method
+///     `pub fn mzgUnpack(self: @This(), buffer: []const u8) UnpackError!usize`, it is
+///     called.
+///     * Otherwise, `int` and `str` messages are accepted.
+///     * The `ValueInvalid` error is returned when the message does not match any a
+///       valid enum member.
+/// * Zig tagged unions:
+///     * If the union has the method
+///       `pub fn mzgUnpack(self: @This(), buffer: []const u8) UnpackError!usize`, it is
+///       called.
+///     * Otherwise, `array` messages with 2 elements or `map` messages with 1 element
+///       are accepted.
+///       * For `array` messages, the first element has to be an `int` and it is unpacked
+///         as the tag type. The second element is unpacked as the union according to
+///         the tag.
+///       * For `map` messages, the key has to be a `str` and it is unpacked as the tag
+///         type. The value is unpacked as the union according to the tag.
+/// * Zig structs:
+///     * If the struct has the method
+///       `pub fn mzgUnpack(self: @This(), buffer: []const u8) UnpackError!usize`, it is
+///       called.
+///     * Otherwise, if it is
+///         * A tuple, then `array` messages are accepted and, the elements in the
+///           message are unpacked into the fields in the order the fields are declared.
+///         * A packed struct, then `int` messages are accept and unpacked as its
+///           backing integer.
+///         * A normal struct, then `array` messages are accepted and, the elements in
+///           the message are unpacked into the fields in the order the fields are
+///           declared.
+/// * Zig `[]const u8` accepts `str` and `bin` message. `out` will point to the slice
+///   inside buffer. Hence no copy is done but it also means that `buffer` has to stay
+///   alive when `out` is being used.
 pub fn unpack(buffer: []const u8, out: anytype) mzg.UnpackError!usize {
     const Out = @TypeOf(out);
     const info = @typeInfo(Out);
