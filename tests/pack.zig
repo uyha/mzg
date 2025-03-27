@@ -129,8 +129,8 @@ test "pack struct" {
 }
 test "pack []u8 like" {
     const content = [_]u8{1};
-    try expect(.default, &[_]u8{ 0xC4, 0x01, 0x01 }, content);
-    try expect(.default, &[_]u8{ 0xC4, 0x01, 0x31 }, "1");
+    try expect(.default, &[_]u8{ 0xA1, 0x01 }, content);
+    try expect(.default, &[_]u8{ 0xA1, 0x31 }, "1");
 
     try expect(.stringly, &[_]u8{ 0xA1, 0x01 }, content);
     try expect(.stringly, &[_]u8{ 0xA1, 0x31 }, "1");
