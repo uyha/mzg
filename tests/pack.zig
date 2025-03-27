@@ -115,36 +115,6 @@ test "pack struct" {
     try expect(.stringly, &[_]u8{0x01}, C{ .a = 1, .b = null });
     try expect(.full_stringly, &[_]u8{0x01}, C{ .a = 1, .b = null });
 }
-test "pack error union" {
-    const T = error{SomeError}!?usize;
-    try expect(
-        .default,
-        &[_]u8{ 0x91, 0xCC, @intFromError(error.SomeError) },
-        @as(T, error.SomeError),
-    );
-    try expect(
-        .default,
-        &[_]u8{ 0x92, 0x00, 0xC0 },
-        @as(T, null),
-    );
-    try expect(
-        .default,
-        &[_]u8{ 0x92, 0x00, 0x01 },
-        @as(T, 1),
-    );
-}
-test "pack error" {
-    try expect(
-        .default,
-        &[_]u8{ 0xCC, @intFromError(error.SomeError) },
-        error.SomeError,
-    );
-    try expect(
-        .stringly,
-        &[_]u8{ 0xA9, 0x53, 0x6F, 0x6D, 0x65, 0x45, 0x72, 0x72, 0x6F, 0x72 },
-        error.SomeError,
-    );
-}
 test "pack []u8 like" {
     const content = [_]u8{1};
     try expect(.default, &[_]u8{ 0xC4, 0x01, 0x01 }, content);

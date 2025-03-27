@@ -10,8 +10,6 @@ pub const Behavior = struct {
     /// This field decides if an enum / tagged union should be packed using its name or
     /// value. If the enum is packed using its name, it cannot be a non-exhaustive enum.
     @"enum": enum { name, value } = .value,
-    /// This field decides if an error set is packed using its name or value.
-    @"error": enum { name, value } = .value,
     /// This field decides if a struct is packed as an array or a map. A tuple is always
     /// packed as an array.
     @"struct": enum { array, map } = .array,
@@ -27,14 +25,12 @@ pub const Behavior = struct {
     pub const stringly: Self = .{
         .byte_slice = .str,
         .@"enum" = .name,
-        .@"error" = .name,
         .@"struct" = .map,
     };
     /// Similar to `.stringly` but null fields in structs are not skipped.
     pub const full_stringly: Self = .{
         .byte_slice = .str,
         .@"enum" = .name,
-        .@"error" = .name,
         .@"struct" = .map,
         .skip_null = false,
     };
@@ -93,7 +89,6 @@ pub fn Packer(comptime behavior: Behavior, comptime Writer: type) type {
         ///               being their names and the values being their values. In this
         ///               case, if `behavior.skip_null` is `true`, null fields will be
         ///               skipped.
-        /// * Zig error -> `str` if `behavior.@"error"` is `.name`, otherwise, `int`.
         /// * Zig slices, arrays, sentinel-terminated pointers, and @Vector of `u8` ->
         ///   `str` if `behavior.byte_slice` is `.str`, otherwise, `bin`.
         /// * Zig slices, arrays, sentinel-terminated pointers of other types -> `array`
@@ -212,12 +207,6 @@ pub fn Packer(comptime behavior: Behavior, comptime Writer: type) type {
                         try mzg.packArray(self.writer, 1);
                         try self.pack(err);
                     }
-                },
-                .error_set => {
-                    return switch (behavior.@"error") {
-                        .name => mzg.packStr(self.writer, @errorName(value)),
-                        .value => self.pack(@intFromError(value)),
-                    };
                 },
                 .pointer => |ptr| switch (ptr.size) {
                     .one => switch (@typeInfo(ptr.child)) {
