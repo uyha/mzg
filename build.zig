@@ -6,7 +6,7 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const mzg = b.createModule(.{
-        .root_source_file = b.path("src/mzg.zig"),
+        .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -28,8 +28,11 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_tests.step);
 
     inline for (.{
-        "stream",
         "array",
+        "default",
+        "map",
+        "simple",
+        "stream",
     }) |name| {
         const example = b.addExecutable(.{
             .name = "mzg-example-" ++ name,

@@ -1,5 +1,5 @@
+const mzg = @import("root.zig");
 const std = @import("std");
-const mzg = @import("mzg.zig");
 
 /// Unpack `[]const u8` to a Zig value
 ///

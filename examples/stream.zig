@@ -5,21 +5,18 @@ pub fn main() !void {
 
     std.debug.print("Stream packing\n", .{});
 
-    for ([_]Targets{
-        .{ .position = .init(1000), .velocity = .init(50) },
-        .{ .position = .init(2000), .velocity = .init(10) },
-    }) |targets| {
-        try mzg.pack(targets, buffer.writer(allocator));
-    }
-    // Inject stray byte
-    try buffer.append(allocator, 1);
+    var in: std.ArrayListUnmanaged(Targets) = .empty;
+    defer in.deinit(allocator);
+    try in.append(allocator, .{ .position = .init(1000), .velocity = .init(50) });
+    try in.append(allocator, .{ .position = .init(2000), .velocity = .init(10) });
+    try mzg.pack(adapter.packStream(&in), buffer.writer(allocator));
 
     std.debug.print("MessagPack bytes: {X:02}\n", .{buffer.items});
 
     var targets: std.ArrayListUnmanaged(Targets) = .empty;
     std.debug.print("Consumed {} bytes\n", .{try mzg.unpack(
         buffer.items,
-        mzg.stream(&targets, allocator),
+        adapter.unpackStream(&targets, allocator),
     )});
     std.debug.print("Length: {}\n", .{targets.items.len});
     for (targets.items) |*t| {
@@ -46,3 +43,4 @@ const Targets = struct {
 
 const std = @import("std");
 const mzg = @import("mzg");
+const adapter = mzg.adapter;

@@ -1,4 +1,4 @@
-const mzg = @import("mzg.zig");
+const mzg = @import("root.zig");
 const std = @import("std");
 
 pub const PackOptions = struct {
