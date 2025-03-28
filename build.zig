@@ -37,7 +37,7 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(mzg_example);
 
     const run_mzg_example = b.addRunArtifact(mzg_example);
-    const run_mzg_example_step = b.step("mzg-exampe", "Run the mzg example");
+    const run_mzg_example_step = b.step("mzg-example", "Run the mzg example");
     run_mzg_example_step.dependOn(&run_mzg_example.step);
 
     const docs = b.addInstallDirectory(.{
