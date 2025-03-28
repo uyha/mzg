@@ -49,6 +49,9 @@ const mzg = @import("mzg.zig");
 pub fn unpack(buffer: []const u8, out: anytype) mzg.UnpackError!usize {
     const Out = @TypeOf(out);
     const info = @typeInfo(Out);
+    if (comptime std.meta.hasFn(Out, "mzgUnpack")) {
+        return out.mzgUnpack(buffer);
+    }
     if (comptime info != .pointer or info.pointer.size != .one) {
         @compileError("`out` has to be a singe-item pointer");
     }

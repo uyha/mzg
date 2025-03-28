@@ -13,4 +13,7 @@ pub const UnpackError = error{
     TypeIncompatible,
     /// The value in the buffer is outside the range of the destination
     ValueInvalid,
+    /// This error is never thrown with the default unpacking, but it is here to let
+    /// custom unpacking return memory error when it cannot allocate memory.
+    OutOfMemory,
 };

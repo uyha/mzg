@@ -27,7 +27,10 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("mzg-test", "Run unit tests");
     test_step.dependOn(&run_tests.step);
 
-    inline for (.{ "stream", "discrete" }) |name| {
+    inline for (.{
+        "stream",
+        "array",
+    }) |name| {
         const example = b.addExecutable(.{
             .name = "mzg-example-" ++ name,
             .root_source_file = b.path("examples/" ++ name ++ ".zig"),

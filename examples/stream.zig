@@ -3,6 +3,8 @@ pub fn main() !void {
     var buffer: std.ArrayListUnmanaged(u8) = .empty;
     defer buffer.deinit(allocator);
 
+    std.debug.print("Stream packing\n", .{});
+
     for ([_]Targets{
         .{ .position = .init(1000), .velocity = .init(50) },
         .{ .position = .init(2000), .velocity = .init(10) },
@@ -15,17 +17,10 @@ pub fn main() !void {
     std.debug.print("MessagPack bytes: {X:02}\n", .{buffer.items});
 
     var targets: std.ArrayListUnmanaged(Targets) = .empty;
-    var size: usize = 0;
-    while (size < buffer.items.len) {
-        size += mzg.unpack(
-            buffer.items[size..],
-            try targets.addOne(allocator),
-        ) catch {
-            // Remove unpopulated item
-            _ = targets.pop();
-            break;
-        };
-    }
+    std.debug.print("Consumed {} bytes\n", .{try mzg.unpack(
+        buffer.items,
+        mzg.stream(&targets, allocator),
+    )});
     std.debug.print("Length: {}\n", .{targets.items.len});
     for (targets.items) |*t| {
         std.debug.print("{}\n", .{t});

@@ -1,23 +1,15 @@
 const UnpackError = @import("error.zig").UnpackError;
 
-pub const Array = enum { fix, arr16, arr32 };
-pub const Bin = enum { bin8, bin16, bin32 };
-pub const Ext = enum { fix1, fix2, fix4, fix8, fix16, ext8, ext16, ext32 };
-pub const Float = enum { f32, f64 };
-pub const Int = enum { pos, neg, u8, u16, u32, u64, i8, i16, i32, i64 };
-pub const Map = enum { fix, map16, map32 };
-pub const Str = enum { fix, str8, str16, str32 };
-
 pub const Format = union(enum) {
-    array: Array,
-    bin: Bin,
+    array: enum { fix, arr16, arr32 },
+    bin: enum { bin8, bin16, bin32 },
     bool: bool,
-    ext: Ext,
-    float: Float,
-    int: Int,
-    map: Map,
+    ext: enum { fix1, fix2, fix4, fix8, fix16, ext8, ext16, ext32 },
+    float: enum { f32, f64 },
+    int: enum { pos, neg, u8, u16, u32, u64, i8, i16, i32, i64 },
+    map: enum { fix, map16, map32 },
     nil: void,
-    str: Str,
+    str: enum { fix, str8, str16, str32 },
 
     const Self = @This();
     pub fn size(self: Self) usize {
