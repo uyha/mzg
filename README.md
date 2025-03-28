@@ -128,6 +128,8 @@ const mzg = @import("mzg");
 | structs and tuples                       | `array` of fields in the order they are declared          |
 | `[N]`, `[]`, `[:X]`, and `@Vec` of `u8`  | `str`                                                     |
 | `[N]`, `[]`, `[:X]`, and `@Vec` of `T`   | `array` of `T`                                            |
+| `Ext`                                    | `ext`                                                     |
+| `Timestamp`                              | `ext`                                                     |
 | `*T`                                     | `T`                                                       |
 <!-- markdownlint-enable line-length -->
 
@@ -143,6 +145,8 @@ const mzg = @import("mzg");
 | `bin`       | `[]const u8`                         |
 | `array`     | The length can be read into integers |
 | `map`       | The length can be read into integers |
+| `ext`       | `Ext`                                |
+| `Timestamp` | `Timestamp`                          |
 
 ### Custom packing
 

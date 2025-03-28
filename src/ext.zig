@@ -1,21 +1,32 @@
 const builtin = @import("builtin");
 const std = @import("std");
 const utils = @import("utils.zig");
+const parseFormat = @import("format.zig").parse;
 
 const PackError = @import("error.zig").PackError;
+const UnpackError = @import("error.zig").UnpackError;
 
 pub const Ext = struct {
-    type: i8,
-    size: u32,
+    const Self = @This();
 
-    pub fn init(@"type": i8, size: u32) Ext {
-        return .{ .type = @"type", .size = size };
+    type: i8,
+    len: u32,
+
+    pub fn init(@"type": i8, len: u32) Ext {
+        return .{ .type = @"type", .len = len };
+    }
+
+    pub fn mzgPack(self: Self, writer: anytype) !void {
+        return packExt(self, writer);
+    }
+    pub fn mzgUnpack(self: *Self, buffer: []const u8) UnpackError!usize {
+        return unpackExt(self, buffer);
     }
 };
 pub fn packExt(ext: Ext, writer: anytype) @TypeOf(writer).Error!void {
     const maxInt = std.math.maxInt;
 
-    switch (ext.size) {
+    switch (ext.len) {
         1 => try writer.writeAll(&[2]u8{ 0xD4, @bitCast(ext.type) }),
         2 => try writer.writeAll(&[2]u8{ 0xD5, @bitCast(ext.type) }),
         4 => try writer.writeAll(&[2]u8{ 0xD6, @bitCast(ext.type) }),
@@ -32,6 +43,78 @@ pub fn packExt(ext: Ext, writer: anytype) @TypeOf(writer).Error!void {
             const buffer = utils.header(u32, 0xC9, @intCast(size)) ++ [1]u8{@bitCast(ext.type)};
             try writer.writeAll(&buffer);
         },
+    }
+}
+pub fn unpackExt(out: *Ext, buffer: []const u8) UnpackError!usize {
+    const format = try parseFormat(buffer);
+    switch (format) {
+        .ext => |ext| switch (ext) {
+            .fix1 => {
+                if (buffer.len < 2) {
+                    return UnpackError.BufferUnderRun;
+                }
+                out.type = @bitCast(buffer[1]);
+                out.len = 1;
+                return 2;
+            },
+            .fix2 => {
+                if (buffer.len < 2) {
+                    return UnpackError.BufferUnderRun;
+                }
+                out.type = @bitCast(buffer[1]);
+                out.len = 2;
+                return 2;
+            },
+            .fix4 => {
+                if (buffer.len < 2) {
+                    return UnpackError.BufferUnderRun;
+                }
+                out.type = @bitCast(buffer[1]);
+                out.len = 4;
+                return 2;
+            },
+            .fix8 => {
+                if (buffer.len < 2) {
+                    return UnpackError.BufferUnderRun;
+                }
+                out.type = @bitCast(buffer[1]);
+                out.len = 8;
+                return 2;
+            },
+            .fix16 => {
+                if (buffer.len < 2) {
+                    return UnpackError.BufferUnderRun;
+                }
+                out.type = @bitCast(buffer[1]);
+                out.len = 16;
+                return 2;
+            },
+            .ext8 => {
+                if (buffer.len < 3) {
+                    return UnpackError.BufferUnderRun;
+                }
+                out.type = @bitCast(buffer[2]);
+                out.len = buffer[1];
+                return 3;
+            },
+            .ext16 => {
+                if (buffer.len < 4) {
+                    return UnpackError.BufferUnderRun;
+                }
+                out.type = @bitCast(buffer[3]);
+                out.len = std.mem.readInt(u16, buffer[1..3], .big);
+                return 4;
+            },
+            .ext32 => {
+                if (buffer.len < 6) {
+                    return UnpackError.BufferUnderRun;
+                }
+                out.type = @bitCast(buffer[5]);
+                out.len = std.mem.readInt(u32, buffer[1..5], .big);
+                return 4;
+            },
+        },
+        else => return UnpackError.TypeIncompatible,
     }
 }
 
@@ -75,6 +158,9 @@ pub const Timestamp = struct {
     pub fn mzgPack(self: Self, writer: anytype) !void {
         return packTimestamp(self, writer);
     }
+    pub fn mzgUnpack(out: *Self, buffer: []const u8) UnpackError!usize {
+        return unpackTimestamp(out, buffer);
+    }
 };
 
 pub fn packTimestamp(value: Timestamp, writer: anytype) PackError(@TypeOf(writer))!void {
@@ -103,4 +189,41 @@ pub fn packTimestamp(value: Timestamp, writer: anytype) PackError(@TypeOf(writer
         std.mem.writeInt(i64, content[7..], value.sec, .big);
         try writer.writeAll(&content);
     }
+}
+
+pub fn unpackTimestamp(out: *Timestamp, buffer: []const u8) UnpackError!usize {
+    const ext, const size = ext: {
+        var result: Ext = undefined;
+        const size = try result.mzgUnpack(buffer);
+        break :ext .{ result, size };
+    };
+
+    if (ext.type != -1) {
+        return UnpackError.TypeIncompatible;
+    }
+
+    if (buffer.len < size + ext.len) {
+        return UnpackError.BufferUnderRun;
+    }
+
+    switch (ext.len) {
+        4 => {
+            out.nano = 0;
+            out.sec = std.mem.readInt(u32, buffer[2..6], .big);
+        },
+        8 => {
+            out.nano = @shrExact(
+                std.mem.readInt(u32, buffer[2..6], .big) & 0xFF_FF_FF_FC,
+                2,
+            );
+            out.sec = std.mem.readInt(u40, buffer[5..10], .big) & 0x3_FF_FF_FF_FF;
+        },
+        12 => {
+            out.nano = std.mem.readInt(u32, buffer[3..7], .big);
+            out.sec = std.mem.readInt(i64, buffer[7..15], .big);
+        },
+        else => return UnpackError.TypeIncompatible,
+    }
+
+    return size + ext.len;
 }

@@ -47,4 +47,14 @@ test "pack then unpack" {
         try expectEqual(7, mzg.unpack(buffer.items, &out));
         try expectEqualDeep(in, out);
     }
+
+    {
+        defer buffer.clearRetainingCapacity();
+
+        const in = mzg.Timestamp.fromSec(std.math.maxInt(u34));
+        var out: mzg.Timestamp = undefined;
+        try mzg.pack(in, buffer.writer(allocator));
+        try expectEqual(10, mzg.unpack(buffer.items, &out));
+        try expectEqualDeep(in, out);
+    }
 }
