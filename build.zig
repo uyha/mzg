@@ -27,18 +27,20 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("mzg-test", "Run unit tests");
     test_step.dependOn(&run_tests.step);
 
-    const mzg_example = b.addExecutable(.{
-        .name = "mzg-example",
-        .root_source_file = b.path("example.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    mzg_example.root_module.addImport("mzg", mzg);
-    b.installArtifact(mzg_example);
+    inline for (.{ "stream", "discrete" }) |name| {
+        const example = b.addExecutable(.{
+            .name = "mzg-example-" ++ name,
+            .root_source_file = b.path("examples/" ++ name ++ ".zig"),
+            .target = target,
+            .optimize = optimize,
+        });
+        example.root_module.addImport("mzg", mzg);
+        b.installArtifact(example);
 
-    const run_mzg_example = b.addRunArtifact(mzg_example);
-    const run_mzg_example_step = b.step("mzg-example", "Run the mzg example");
-    run_mzg_example_step.dependOn(&run_mzg_example.step);
+        const run_example = b.addRunArtifact(example);
+        const run_example_step = b.step("mzg-example-" ++ name, "Run the mzg example");
+        run_example_step.dependOn(&run_example.step);
+    }
 
     const docs = b.addInstallDirectory(.{
         .install_dir = .prefix,
