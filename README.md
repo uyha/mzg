@@ -6,13 +6,17 @@
   - [How to use](#how-to-use)
   - [API](#api)
     - [High level functions](#high-level-functions)
+    - [Building block functions](#building-block-functions)
   - [Example](#example)
-    - [Streaming packing and unpacking](#streaming-packing-and-unpacking)
+    - [Simple back and forth](#simple-back-and-forth)
+    - [Default packing and unpacking for custom types](#default-packing-and-unpacking-for-custom-types)
+    - [Adapters for common container types](#adapters-for-common-container-types)
   - [Mapping](#mapping)
     - [Default packing from Zig types to MessagePack](#default-packing-from-zig-types-to-messagepack)
     - [Default unpack from MessagePack to Zig types](#default-unpack-from-messagepack-to-zig-types)
-    - [Custom packing](#custom-packing)
-    - [Custom unpacking](#custom-unpacking)
+    - [Customization](#customization)
+      - [Packing](#packing)
+      - [Unpacking](#unpacking)
 <!--toc:end-->
 
 `mzg` is a MessagePack library for Zig with no allocations, and the API favors
@@ -45,14 +49,22 @@ the streaming usage.
 1. `packWithOptions` is like `pack` but accepts a `mzg.PackOptions` parameter to
    control the packing behavior.
 1. `unpack` for unpacking a MessagePack message into a Zig object
+1. A set of adapters living in the `mzg.adapter` namespace to help with packing
+   and unpacking common container types.
+
+### Building block functions
+
+There are a set of `pack*` and `unpack*` functions that translate between a
+precise set of Zig types and MessagePack. These functions can be used when
+implementing custom packing and unpacking.
 
 ## Example
 
-### Streaming packing and unpacking
+All examples live in `examples` directory.
 
-When there are multiple items in the message but the message is not an array
-(amount of items is not indicated in the beginning), the following example shows
-how to do it.
+### Simple back and forth
+
+Converting a byte slice to MessagePack and back
 
 ```zig
 pub fn main() !void {
@@ -60,57 +72,25 @@ pub fn main() !void {
     var buffer: std.ArrayListUnmanaged(u8) = .empty;
     defer buffer.deinit(allocator);
 
-    for ([_]Targets{
-        .{ .position = .init(1000), .velocity = .init(50) },
-        .{ .position = .init(2000), .velocity = .init(10) },
-    }) |targets| {
-        try mzg.pack(targets, buffer.writer(allocator));
-    }
-    // Inject stray byte
-    try buffer.append(allocator, 1);
+    try mzg.pack(
+        "a string with some characters for demonstration purpose",
+        buffer.writer(allocator),
+    );
 
-    std.debug.print("MessagPack bytes: {X:02}\n", .{buffer.items});
-
-    var targets: std.ArrayListUnmanaged(Targets) = .empty;
-    var size: usize = 0;
-    while (size < buffer.items.len) {
-        size += mzg.unpack(
-            buffer.items[size..],
-            try targets.addOne(allocator),
-        ) catch {
-            // Remove unpopulated item
-            _ = targets.pop();
-            break;
-        };
-    }
-    std.debug.print("Length: {}\n", .{targets.items.len});
-    for (targets.items) |*t| {
-        std.debug.print("{}\n", .{t});
-    }
+    var string: []const u8 = undefined;
+    const size = try mzg.unpack(buffer.items, &string);
+    std.debug.print("Consumed {} bytes\n", .{size});
+    std.debug.print("string: {s}\n", .{string});
 }
-
-const Position = enum(i32) {
-    _,
-    pub fn init(raw: std.meta.Tag(@This())) @This() {
-        return @enumFromInt(raw);
-    }
-};
-const Velocity = enum(i32) {
-    _,
-    pub fn init(raw: std.meta.Tag(@This())) @This() {
-        return @enumFromInt(raw);
-    }
-};
-const Targets = struct {
-    position: Position,
-    velocity: Velocity,
-};
 
 const std = @import("std");
 const mzg = @import("mzg");
 ```
 
-### Array packing and unpacking
+### Default packing and unpacking for custom types
+
+A certain types can be packed and unpacked by default (refer to
+[Mapping](#mapping) for more details)
 
 ```zig
 pub fn main() !void {
@@ -118,31 +98,16 @@ pub fn main() !void {
     var buffer: std.ArrayListUnmanaged(u8) = .empty;
     defer buffer.deinit(allocator);
 
-    try mzg.pack([_]Targets{
-        .{ .position = .init(1000), .velocity = .init(50) },
-        .{ .position = .init(2000), .velocity = .init(10) },
-    }, buffer.writer(allocator));
+    try mzg.pack(
+        Targets{ .position = .init(2000), .velocity = .init(10) },
+        buffer.writer(allocator),
+    );
 
-    std.debug.print("MessagPack bytes: {X:02}\n", .{buffer.items});
+    var targets: Targets = undefined;
+    const size = try mzg.unpack(buffer.items, &targets);
 
-    var targets: std.ArrayListUnmanaged(Targets) = .empty;
-    var len: usize = 0;
-    var size: usize = try mzg.unpack(buffer.items, &len);
-
-    for (0..len) |_| {
-        size += mzg.unpack(
-            buffer.items[size..],
-            try targets.addOne(allocator),
-        ) catch {
-            // Remove unpopulated item
-            _ = targets.pop();
-            break;
-        };
-    }
-    std.debug.print("Length: {}\n", .{targets.items.len});
-    for (targets.items) |*t| {
-        std.debug.print("{}\n", .{t});
-    }
+    std.debug.print("Consumed {} bytes\n", .{size});
+    std.debug.print("Targets: {}\n", .{targets});
 }
 
 const Position = enum(i32) {
@@ -164,6 +129,38 @@ const Targets = struct {
 
 const std = @import("std");
 const mzg = @import("mzg");
+const adapter = mzg.adapter;
+```
+
+### Adapters for common container types
+
+Many container types in the `std` library cannot be packed or unpacked by
+default, but the adapter functions make it easy to work with these types.
+
+```zig
+pub fn main() !void {
+    const allocator = std.heap.page_allocator;
+    var buffer: std.ArrayListUnmanaged(u8) = .empty;
+    defer buffer.deinit(allocator);
+
+    var in: std.ArrayListUnmanaged(u32) = .empty;
+    defer in.deinit(allocator);
+    try in.append(allocator, 42);
+    try in.append(allocator, 75);
+    try mzg.pack(adapter.packArray(&in), buffer.writer(allocator));
+
+    var out: std.ArrayListUnmanaged(u32) = .empty;
+    const size = try mzg.unpack(
+        buffer.items,
+        adapter.unpackArray(&out, allocator),
+    );
+    std.debug.print("Consumed {} bytes\n", .{size});
+    std.debug.print("out: {any}\n", .{out.items});
+}
+
+const std = @import("std");
+const mzg = @import("mzg");
+const adapter = mzg.adapter;
 ```
 
 ## Mapping
@@ -205,10 +202,12 @@ const mzg = @import("mzg");
 | `ext`       | `Ext`                                |
 | `Timestamp` | `Timestamp`                          |
 
-### Custom packing
+### Customization
+
+#### Packing
 
 When an enum/union/struct has an `mzgPack` function with the signature being
-either
+one of
 
 ```zig
 pub fn mzgPack(self: *@This(), writer: anytype) !void
@@ -220,7 +219,7 @@ pub fn mzgPack(self: *@This(), options: mzg.PackOptions, writer: anytype) !void
 
 The function will be called when the `mzg.pack` function is used.
 
-### Custom unpacking
+#### Unpacking
 
 When an enum/union/struct has an `mzgUnpack` function with the signature being
 
