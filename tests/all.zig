@@ -7,6 +7,7 @@ comptime {
         t.refAllDeclsRecursive(target);
     }
     t.refAllDecls(@import("family/all.zig"));
+    t.refAllDecls(@import("adapter/all.zig"));
 }
 
 test "pack then unpack" {
