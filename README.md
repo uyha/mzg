@@ -89,7 +89,7 @@ const mzg = @import("mzg");
 
 ### Default packing and unpacking for custom types
 
-A certain types can be packed and unpacked by default (refer to
+Certain types can be packed and unpacked by default (refer to
 [Mapping](#mapping) for more details)
 
 ```zig
@@ -184,7 +184,7 @@ const adapter = mzg.adapter;
 | `[N]`, `[]`, `[:X]`, and `@Vec` of `u8`  | `str`                                                     |
 | `[N]`, `[]`, `[:X]`, and `@Vec` of `T`   | `array` of `T`                                            |
 | `Ext`                                    | `ext`                                                     |
-| `Timestamp`                              | `ext`                                                     |
+| `Timestamp`                              | `Timestamp`                                               |
 | `*T`                                     | `T`                                                       |
 <!-- markdownlint-enable line-length -->
 
