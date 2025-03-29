@@ -44,7 +44,10 @@ pub fn build(b: *std.Build) void {
         b.installArtifact(example);
 
         const run_example = b.addRunArtifact(example);
-        const run_example_step = b.step("mzg-example-" ++ name, "Run the mzg example");
+        const run_example_step = b.step(
+            "mzg-example-" ++ name,
+            "Run the mzg " ++ name ++ " example",
+        );
         run_example_step.dependOn(&run_example.step);
     }
 
@@ -60,9 +63,10 @@ pub fn build(b: *std.Build) void {
         .check = true,
         .paths = &.{
             "src/",
+            "examples/",
+            "tests/",
             "build.zig",
             "build.zig.zon",
-            "example.zig",
         },
     });
     const format_step = b.step("mzg-fmt", "Format project");
