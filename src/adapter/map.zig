@@ -76,7 +76,11 @@ pub fn MapUnpacker(comptime Container: type) type {
                 };
 
                 size += mzg.unpack(buffer[size..], target) catch |err| {
-                    _ = self.container.pop();
+                    if (std.meta.hasFn(Container, "pop")) {
+                        _ = self.container.pop();
+                    } else if (std.meta.hasFn(Container, "remove")) {
+                        _ = self.container.remove(key);
+                    }
                     return err;
                 };
             }

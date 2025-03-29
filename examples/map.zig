@@ -5,7 +5,7 @@ pub fn main() !void {
 
     std.debug.print("Map un/packing\n", .{});
 
-    var prison: std.StringArrayHashMapUnmanaged([]const u8) = .empty;
+    var prison: std.StringHashMapUnmanaged([]const u8) = .empty;
     defer prison.deinit(allocator);
     try prison.put(allocator, "1", "42");
     try prison.put(allocator, "42", "53");
