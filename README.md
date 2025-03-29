@@ -7,7 +7,7 @@
   - [API](#api)
     - [High level functions](#high-level-functions)
     - [Building block functions](#building-block-functions)
-  - [Example](#example)
+  - [Examples](#examples)
     - [Simple back and forth](#simple-back-and-forth)
     - [Default packing and unpacking for custom types](#default-packing-and-unpacking-for-custom-types)
     - [Adapters for common container types](#adapters-for-common-container-types)
@@ -58,9 +58,9 @@ There are a set of `pack*` and `unpack*` functions that translate between a
 precise set of Zig types and MessagePack. These functions can be used when
 implementing custom packing and unpacking.
 
-## Example
+## Examples
 
-All examples live in `examples` directory.
+All examples live in [examples](examples) directory.
 
 ### Simple back and forth
 
