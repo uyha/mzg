@@ -1,27 +1,26 @@
 const builtin = @import("builtin");
 const std = @import("std");
-const utils = @import("utils.zig");
+const utils = @import("../utils.zig");
 
-const PackError = @import("error.zig").PackError;
-
-pub fn packMap(size: usize, writer: anytype) PackError(@TypeOf(writer))!void {
+const PackError = @import("../error.zig").PackError;
+pub fn packArray(size: usize, writer: anytype) PackError(@TypeOf(writer))!void {
     const maxInt = std.math.maxInt;
 
     switch (size) {
-        0...15 => try writer.writeAll(&[_]u8{0b1000_0000 | @as(u8, @intCast(size))}),
+        0...15 => try writer.writeAll(&[_]u8{0b1001_0000 | @as(u8, @intCast(size))}),
         16...maxInt(u16) => {
-            try writer.writeAll(&utils.header(u16, 0xDE, @intCast(size)));
+            return writer.writeAll(&utils.header(u16, 0xDC, @intCast(size)));
         },
         maxInt(u16) + 1...maxInt(u32) => {
-            try writer.writeAll(&utils.header(u32, 0xDF, @intCast(size)));
+            return writer.writeAll(&utils.header(u32, 0xDD, @intCast(size)));
         },
         else => return error.ValueInvalid,
     }
 }
 
 const parseFormat = @import("format.zig").parse;
-const UnpackError = @import("error.zig").UnpackError;
-pub fn unpackMap(buffer: []const u8, out: anytype) UnpackError!usize {
+const UnpackError = @import("../error.zig").UnpackError;
+pub fn unpackArray(buffer: []const u8, out: anytype) UnpackError!usize {
     const info = @typeInfo(@TypeOf(out));
     if (comptime info != .pointer or info.pointer.size != .one or info.pointer.is_const) {
         @compileError("`out` has to be a pointer to an int");
@@ -35,17 +34,16 @@ pub fn unpackMap(buffer: []const u8, out: anytype) UnpackError!usize {
     }
 
     switch (try parseFormat(buffer)) {
-        .map => |array| switch (array) {
+        .array => |array| switch (array) {
             .fix => {
-                out.* =
-                    utils.readIntBounded(
-                        Child,
-                        u8,
-                        &[_]u8{buffer[0] & 0x0F},
-                    ) orelse return UnpackError.ValueInvalid;
+                out.* = utils.readIntBounded(
+                    Child,
+                    u8,
+                    &[_]u8{buffer[0] & 0x0F},
+                ) orelse return UnpackError.ValueInvalid;
                 return 1;
             },
-            .map16 => {
+            .arr16 => {
                 if (buffer.len < 3) {
                     return UnpackError.BufferUnderRun;
                 }
@@ -56,7 +54,7 @@ pub fn unpackMap(buffer: []const u8, out: anytype) UnpackError!usize {
                 ) orelse return UnpackError.ValueInvalid;
                 return 3;
             },
-            .map32 => {
+            .arr32 => {
                 if (buffer.len < 5) {
                     return UnpackError.BufferUnderRun;
                 }

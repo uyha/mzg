@@ -1,10 +1,10 @@
 const builtin = @import("builtin");
 const std = @import("std");
-const utils = @import("utils.zig");
+const utils = @import("../utils.zig");
 const parseFormat = @import("format.zig").parse;
 
-const PackError = @import("error.zig").PackError;
-const UnpackError = @import("error.zig").UnpackError;
+const PackError = @import("../error.zig").PackError;
+const UnpackError = @import("../error.zig").UnpackError;
 
 pub const Ext = struct {
     const Self = @This();

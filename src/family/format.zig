@@ -1,4 +1,4 @@
-const UnpackError = @import("error.zig").UnpackError;
+const UnpackError = @import("../error.zig").UnpackError;
 
 pub const Format = union(enum) {
     array: enum { fix, arr16, arr32 },

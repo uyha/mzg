@@ -1,6 +1,6 @@
 const builtin = @import("builtin");
 const std = @import("std");
-const utils = @import("utils.zig");
+const utils = @import("../utils.zig");
 
 pub fn packFloat(value: anytype, writer: anytype) @TypeOf(writer).Error!void {
     const Input = @TypeOf(value);
@@ -33,7 +33,7 @@ pub fn packFloat(value: anytype, writer: anytype) @TypeOf(writer).Error!void {
 }
 
 const parseFormat = @import("format.zig").parse;
-const UnpackError = @import("error.zig").UnpackError;
+const UnpackError = @import("../error.zig").UnpackError;
 pub fn unpackFloatWithEndian(
     comptime endian: std.builtin.Endian,
     buffer: []const u8,

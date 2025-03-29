@@ -1,6 +1,6 @@
 const builtin = @import("builtin");
 const std = @import("std");
-const utils = @import("utils.zig");
+const utils = @import("../utils.zig");
 
 // Originally, there was a `behavior` parameter that contains a `priority` field that
 // specifies if the packing procedure should prioritize for the smallest amount of byte
@@ -54,7 +54,7 @@ pub fn packInt(value: anytype, writer: anytype) @TypeOf(writer).Error!void {
 }
 
 const parseFormat = @import("format.zig").parse;
-const UnpackError = @import("error.zig").UnpackError;
+const UnpackError = @import("../error.zig").UnpackError;
 
 pub fn unpackInt(buffer: []const u8, out: anytype) UnpackError!usize {
     const info = @typeInfo(@TypeOf(out));

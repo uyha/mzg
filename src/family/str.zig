@@ -1,8 +1,8 @@
 const builtin = @import("builtin");
 const std = @import("std");
-const utils = @import("utils.zig");
+const utils = @import("../utils.zig");
 
-const PackError = @import("error.zig").PackError;
+const PackError = @import("../error.zig").PackError;
 
 pub fn packStr(input: []const u8, writer: anytype) PackError(@TypeOf(writer))!void {
     const maxInt = std.math.maxInt;
@@ -26,7 +26,7 @@ pub fn packStr(input: []const u8, writer: anytype) PackError(@TypeOf(writer))!vo
 }
 
 const parseFormat = @import("format.zig").parse;
-const UnpackError = @import("error.zig").UnpackError;
+const UnpackError = @import("../error.zig").UnpackError;
 pub fn unpackStr(buffer: []const u8, out: *[]const u8) UnpackError!usize {
     const readInt = std.mem.readInt;
 
