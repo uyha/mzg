@@ -14,6 +14,7 @@ pub fn main() !void {
     );
 
     var targets: std.ArrayListUnmanaged(Targets) = .empty;
+    defer targets.deinit(allocator);
     const size = try mzg.unpack(
         buffer.items,
         adapter.unpackStream(&targets, allocator),

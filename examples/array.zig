@@ -10,6 +10,7 @@ pub fn main() !void {
     try mzg.pack(adapter.packArray(&in), buffer.writer(allocator));
 
     var out: std.ArrayListUnmanaged(u32) = .empty;
+    defer out.deinit(allocator);
     const size = try mzg.unpack(
         buffer.items,
         adapter.unpackArray(&out, allocator),
