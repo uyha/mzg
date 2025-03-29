@@ -11,17 +11,12 @@ pub fn main() !void {
     try prison.put(allocator, "53", "1");
     try mzg.pack(adapter.packMap(&prison), buffer.writer(allocator));
 
-    // Inject stray byte
-    try buffer.append(allocator, 1);
-
-    std.debug.print("MessagPack bytes: {X:02}\n", .{buffer.items});
-
     var targets: std.StringArrayHashMapUnmanaged([]const u8) = .empty;
-    std.debug.print("Consumed {} bytes\n", .{try mzg.unpack(
+    const size = try mzg.unpack(
         buffer.items,
         adapter.unpackMap(&targets, .use_first, allocator),
-    )});
-    std.debug.print("Length: {}\n", .{targets.count()});
+    );
+    std.debug.print("Consumed {} bytes\n", .{size});
     var iterator = targets.iterator();
     while (iterator.next()) |*t| {
         std.debug.print("{s}: {s}\n", .{ t.key_ptr.*, t.value_ptr.* });
