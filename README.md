@@ -33,7 +33,7 @@ the streaming usage.
 1. In your `build.zig`, add the following
 
    ```zig
-   const zimq = b.dependency("mzg", .{
+   const mzg = b.dependency("mzg", .{
        .target = target,
        .optimize = optimize,
    });
