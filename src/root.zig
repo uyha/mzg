@@ -19,8 +19,10 @@ pub const unpackStr = @import("family/str.zig").unpackStr;
 const ext = @import("family/ext.zig");
 pub const Ext = ext.Ext;
 pub const packExt = ext.packExt;
+pub const unpackExt = ext.unpackExt;
 pub const Timestamp = ext.Timestamp;
 pub const packTimestamp = ext.packTimestamp;
+pub const unpackTimestamp = ext.unpackTimestamp;
 
 pub const format = @import("family/format.zig");
 
