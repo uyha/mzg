@@ -36,3 +36,8 @@ pub const UnpackError = @import("error.zig").UnpackError;
 pub const unpack = @import("unpack.zig").unpack;
 
 pub const adapter = @import("adapter/root.zig");
+
+const value = @import("value.zig");
+pub const Int = value.Int;
+pub const Float = value.Float;
+pub const Value = value.Value;
