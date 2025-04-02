@@ -79,4 +79,20 @@ pub fn build(b: *std.Build) void {
     all.dependOn(test_step);
     all.dependOn(docs_step);
     all.dependOn(format_step);
+
+    const mpack = b.addExecutable(.{
+        .name = "mpack",
+        .root_source_file = b.path("apps/mpack.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    mpack.root_module.addImport("mzg", mzg);
+    b.installArtifact(mpack);
+    const run_mpack = b.addRunArtifact(mpack);
+    const run_mpack_step = b.step("mpack", "Run mpack");
+    run_mpack_step.dependOn(&run_mpack.step);
+
+    if (b.args) |args| for (args) |arg| {
+        run_mpack.addArg(arg);
+    };
 }
