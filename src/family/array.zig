@@ -6,7 +6,11 @@ const PackError = @import("../error.zig").PackError;
 pub fn packArray(size: usize, writer: anytype) PackError(@TypeOf(writer))!void {
     const maxInt = std.math.maxInt;
 
-    switch (size) {
+    if (size > maxInt(u32)) {
+        return error.ValueInvalid;
+    }
+
+    switch (@as(u32, @intCast(size))) {
         0...15 => try writer.writeAll(&[_]u8{0b1001_0000 | @as(u8, @intCast(size))}),
         16...maxInt(u16) => {
             return writer.writeAll(&utils.header(u16, 0xDC, @intCast(size)));
@@ -14,7 +18,6 @@ pub fn packArray(size: usize, writer: anytype) PackError(@TypeOf(writer))!void {
         maxInt(u16) + 1...maxInt(u32) => {
             return writer.writeAll(&utils.header(u32, 0xDD, @intCast(size)));
         },
-        else => return error.ValueInvalid,
     }
 }
 

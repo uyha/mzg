@@ -7,7 +7,11 @@ const PackError = @import("../error.zig").PackError;
 pub fn packBin(input: []const u8, writer: anytype) PackError(@TypeOf(writer))!void {
     const maxInt = std.math.maxInt;
 
-    switch (input.len) {
+    if (input.len > maxInt(u32)) {
+        return error.ValueInvalid;
+    }
+
+    switch (@as(u32, @intCast(input.len))) {
         0...maxInt(u8) => |len| {
             try writer.writeAll(&[_]u8{ 0xC4, @as(u8, @intCast(len)) });
         },
@@ -17,7 +21,6 @@ pub fn packBin(input: []const u8, writer: anytype) PackError(@TypeOf(writer))!vo
         maxInt(u16) + 1...maxInt(u32) => |len| {
             try writer.writeAll(&utils.header(u32, 0xC6, @intCast(len)));
         },
-        else => return error.ValueInvalid,
     }
     try writer.writeAll(input);
 }
