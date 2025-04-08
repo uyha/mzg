@@ -14,7 +14,9 @@ pub const unpackFloat = @import("family/float.zig").unpackFloat;
 pub const unpackInt = @import("family/int.zig").unpackInt;
 pub const unpackMap = @import("family/map.zig").unpackMap;
 pub const unpackNil = @import("family/nil.zig").unpackNil;
+
 pub const unpackStr = @import("family/str.zig").unpackStr;
+pub const unpackStrLen = @import("family/str.zig").unpackStrLen;
 
 const ext = @import("family/ext.zig");
 pub const Ext = ext.Ext;

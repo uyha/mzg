@@ -31,42 +31,10 @@ pub fn packStr(input: []const u8, writer: anytype) PackError(@TypeOf(writer))!vo
 const parseFormat = @import("format.zig").parse;
 const UnpackError = @import("../error.zig").UnpackError;
 pub fn unpackStr(buffer: []const u8, out: *[]const u8) UnpackError!usize {
-    const readInt = std.mem.readInt;
+    var len: u32 = undefined;
+    var size: usize = try unpackStrLen(buffer, &len);
+    size += len;
 
-    const format = try parseFormat(buffer);
-    var size: usize = undefined;
-    var len: usize = undefined;
-
-    switch (format) {
-        .str => |str| switch (str) {
-            .fix => {
-                len = buffer[0] & 0b000_11111;
-                size = len + 1;
-            },
-            .str8 => {
-                if (buffer.len < 2) {
-                    return UnpackError.BufferUnderRun;
-                }
-                len = readInt(u8, buffer[1..2], std.builtin.Endian.big);
-                size = len + 2;
-            },
-            .str16 => {
-                if (buffer.len < 3) {
-                    return UnpackError.BufferUnderRun;
-                }
-                len = readInt(u16, buffer[1..3], std.builtin.Endian.big);
-                size = len + 3;
-            },
-            .str32 => {
-                if (buffer.len < 5) {
-                    return UnpackError.BufferUnderRun;
-                }
-                len = readInt(u32, buffer[1..5], std.builtin.Endian.big);
-                size = len + 5;
-            },
-        },
-        else => return UnpackError.TypeIncompatible,
-    }
     if (buffer.len < size) {
         return UnpackError.BufferUnderRun;
     }
@@ -74,4 +42,40 @@ pub fn unpackStr(buffer: []const u8, out: *[]const u8) UnpackError!usize {
     out.* = buffer[size - len .. size];
 
     return size;
+}
+
+pub fn unpackStrLen(buffer: []const u8, out: *u32) UnpackError!usize {
+    const readInt = std.mem.readInt;
+
+    const format = try parseFormat(buffer);
+    switch (format) {
+        .str => |str| switch (str) {
+            .fix => {
+                out.* = buffer[0] & 0b000_11111;
+                return 1;
+            },
+            .str8 => {
+                if (buffer.len < 2) {
+                    return UnpackError.BufferUnderRun;
+                }
+                out.* = readInt(u8, buffer[1..2], std.builtin.Endian.big);
+                return 2;
+            },
+            .str16 => {
+                if (buffer.len < 3) {
+                    return UnpackError.BufferUnderRun;
+                }
+                out.* = readInt(u16, buffer[1..3], std.builtin.Endian.big);
+                return 3;
+            },
+            .str32 => {
+                if (buffer.len < 5) {
+                    return UnpackError.BufferUnderRun;
+                }
+                out.* = readInt(u32, buffer[1..5], std.builtin.Endian.big);
+                return 5;
+            },
+        },
+        else => return UnpackError.TypeIncompatible,
+    }
 }
