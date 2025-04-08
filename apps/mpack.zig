@@ -102,9 +102,22 @@ fn MsgpackPipe(
             );
             try self.stream.beginObject();
         }
+        fn openStr(self: *Self, allocator: std.mem.Allocator, len: usize) !void {
+            try self.containers.append(
+                allocator,
+                .{ .str = .{ .len = len, .consumed = 0 } },
+            );
+            try self.stream.beginWriteRaw();
+            try self.stream.stream.writeAll("\"");
+        }
         fn closeContainer(self: *Self) !void {
             while (self.lastContainer()) |container| {
-                container.incrementConsume();
+                switch (container.*) {
+                    .array, .map => {
+                        container.increseConsumed(1);
+                    },
+                    .str => {},
+                }
                 if (!container.isFilled()) {
                     return;
                 }
@@ -117,6 +130,10 @@ fn MsgpackPipe(
                         if (c.consumed == c.len) {
                             try self.stream.endObject();
                         }
+                    },
+                    .str => {
+                        try self.stream.stream.writeAll("\"");
+                        self.stream.endWriteRaw();
                     },
                 }
 
@@ -145,10 +162,21 @@ fn MsgpackPipe(
                             },
                         }
                     },
+                    .str => {
+                        const Value = @TypeOf(value);
+
+                        if (Value != []const u8 and Value != []u8) {
+                            unreachable;
+                        }
+
+                        try self.stream.stream.writeAll(value);
+                        container.increseConsumed(value.len);
+                    },
                 }
             } else {
                 try self.stream.write(value);
             }
+
             try self.closeContainer();
         }
 
@@ -174,6 +202,15 @@ fn MsgpackPipe(
 
                     const format = try mzg.format.parse(slice);
 
+                    if (self.lastContainer()) |container| {
+                        if (container.* == .str) {
+                            const remaining = container.remaining();
+                            try self.write(slice[0..remaining]);
+                            parsed_bytes += remaining;
+                            continue;
+                        }
+                    }
+
                     switch (format) {
                         .array => {
                             var out: u32 = undefined;
@@ -184,6 +221,23 @@ fn MsgpackPipe(
                             var out: u32 = undefined;
                             parsed_bytes += try mzg.unpackMap(slice, &out);
                             try self.openMap(allocator, out);
+                        },
+                        .str => {
+                            var out: u32 = undefined;
+                            const size = try mzg.unpackStrLen(slice, &out);
+
+                            if (out + size < slice.len) {
+                                try self.write('"');
+                                try self.write(slice[size..][0..out]);
+                                try self.write('"');
+
+                                parsed_bytes += out + size;
+                                continue;
+                            }
+
+                            try self.openStr(allocator, out);
+                            try self.write(slice[size..]);
+                            parsed_bytes += slice.len;
                         },
                         else => {
                             var out: mzg.Value = undefined;
@@ -238,18 +292,24 @@ fn msgpackPipe(
 }
 
 const Container = union(enum) {
+    const Self = @This();
+
     map: struct { len: usize, consumed: usize, target: enum { key, value } },
     array: struct { len: usize, consumed: usize },
+    str: struct { len: usize, consumed: usize },
 
-    pub fn incrementConsume(self: *@This()) void {
+    pub fn increseConsumed(self: *Self, addition: usize) void {
         return switch (self.*) {
-            inline else => |*value| value.consumed += 1,
+            inline else => |*value| value.consumed += addition,
         };
     }
-    pub fn isFilled(self: *const @This()) bool {
+    pub fn remaining(self: *const Self) usize {
         return switch (self.*) {
-            inline else => |value| value.len == value.consumed,
+            inline else => |*value| value.len - value.consumed,
         };
+    }
+    pub fn isFilled(self: *const Self) bool {
+        return self.remaining() == 0;
     }
 };
 const Direction = enum { to_json, to_msgpack };
