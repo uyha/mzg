@@ -207,25 +207,34 @@ const adapter = mzg.adapter;
 
 #### Packing
 
-When an enum/union/struct has an `mzgPack` function with the signature being
-one of
+When an enum/union/struct has an `mzgPack` function that can be called with
 
 ```zig
-pub fn mzgPack(self: *@This(), writer: anytype) !void
+// Value only needs the writer
+value.mzgPack(writer);
+
+// or
+
+// Value cares about the options passed by the caller
+value.mzgPack(options, writer);
 ```
 
-```zig
-pub fn mzgPack(self: *@This(), options: mzg.PackOptions, writer: anytype) !void
-```
+- `value` is the enum/union/struct being packed.
+- `options` is `mzg.PackOptions`.
+- `writer` is `anytype` that can be called with `writer.writeAll(&[_]u8{});`.
 
 The function will be called when the `mzg.pack` function is used.
 
 #### Unpacking
 
-When an enum/union/struct has an `mzgUnpack` function with the signature being
+When an enum/union/struct has an `mzgUnpack` function that returns
+`UnpackError!usize` and can be called with
 
 ```zig
-pub fn mzgUnpack(self: @This(), buffer: []const u8) UnpackError!usize
+out.mzgUnpack(buffer);
 ```
+
+- `out` is the enum/union/struct being unpacked.
+- `buffer` is `[]const u8`.
 
 The function will be called when the `mzg.unpack` function is used.
