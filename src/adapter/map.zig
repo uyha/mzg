@@ -1,9 +1,9 @@
 pub fn MapPacker(comptime Container: type) type {
     return struct {
         const Self = @This();
-        container: *Container,
+        container: *const Container,
 
-        pub fn init(container: *Container) Self {
+        pub fn init(container: *const Container) Self {
             return .{ .container = container };
         }
 
