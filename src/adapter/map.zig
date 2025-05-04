@@ -1,9 +1,3 @@
-const std = @import("std");
-const mzg = @import("root.zig").mzg;
-const UnpackError = mzg.UnpackError;
-const PackError = mzg.PackError;
-const PackOptions = mzg.PackOptions;
-
 pub fn MapPacker(comptime Container: type) type {
     return struct {
         const Self = @This();
@@ -18,11 +12,25 @@ pub fn MapPacker(comptime Container: type) type {
             options: PackOptions,
             writer: anytype,
         ) PackError(@TypeOf(writer))!void {
-            try mzg.packMap(self.container.count(), writer);
-            var iterator = self.container.iterator();
-            while (iterator.next()) |*kv| {
-                try mzg.packWithOptions(kv.key_ptr, options, writer);
-                try mzg.packWithOptions(kv.value_ptr, options, writer);
+            if (comptime meta.hasFn(Container, "count") and meta.hasFn(Container, "iterator")) {
+                try mzg.packMap(self.container.count(), writer);
+                var iterator = self.container.iterator();
+                while (iterator.next()) |*kv| {
+                    try mzg.packWithOptions(kv.key_ptr, options, writer);
+                    try mzg.packWithOptions(kv.value_ptr, options, writer);
+                }
+            } else if (comptime meta.hasFn(Container, "keys") and meta.hasFn(Container, "values")) {
+                const keys = self.container.keys();
+                const values = self.container.values();
+
+                try mzg.packMap(keys.len, writer);
+
+                for (keys, values) |key, value| {
+                    try mzg.packWithOptions(key, options, writer);
+                    try mzg.packWithOptions(value, options, writer);
+                }
+            } else {
+                @compileError(@typeName(Container) ++ " is not supported");
             }
         }
     };
@@ -96,3 +104,11 @@ pub fn unpackMap(
 ) MapUnpacker(std.meta.Child(@TypeOf(out))) {
     return .init(out, behavior, allocator);
 }
+
+const std = @import("std");
+const meta = std.meta;
+
+const mzg = @import("root.zig").mzg;
+const UnpackError = mzg.UnpackError;
+const PackError = mzg.PackError;
+const PackOptions = mzg.PackOptions;
