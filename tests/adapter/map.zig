@@ -16,16 +16,33 @@ test "pack and unpack with map adapter" {
     try mzg.pack(adapter.packMap(&in), buffer.writer(allocator));
 
     var out: std.StringArrayHashMapUnmanaged([]const u8) = .empty;
+    defer out.deinit(allocator);
     _ = try mzg.unpack(
         buffer.items,
         adapter.unpackMap(&out, .use_first, allocator),
     );
-    defer out.deinit(allocator);
 
     var iter = in.iterator();
     while (iter.next()) |kv| {
         try t.expectEqualDeep(kv.value_ptr.*, out.get(kv.key_ptr.*).?);
     }
+}
+
+test "unpack with map adapter" {
+    const allocator = t.allocator;
+
+    const content = "\x81\xA3led\xABinproc://#2";
+
+    var out: std.StringArrayHashMapUnmanaged([]const u8) = .empty;
+    defer out.deinit(allocator);
+
+    _ = try mzg.unpack(
+        content,
+        adapter.unpackMap(&out, .@"error", allocator),
+    );
+
+    try t.expectEqual(1, out.count());
+    try t.expectEqualStrings("inproc://#2", out.get("led").?);
 }
 
 test "pack and unpack StaticStringMap with map adapter" {

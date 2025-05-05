@@ -62,7 +62,7 @@ pub fn MapUnpacker(comptime Container: type) type {
 
         pub fn mzgUnpack(self: Self, buffer: []const u8) UnpackError!usize {
             var len: u32 = undefined;
-            var size: usize = try mzg.unpack(buffer, &len);
+            var size: usize = try mzg.unpackMap(buffer, &len);
 
             var key: @FieldType(Container.KV, "key") = undefined;
             var value: @FieldType(Container.KV, "value") = undefined;

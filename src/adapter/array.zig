@@ -18,7 +18,7 @@ pub fn ArrayPacker(comptime Container: type) type {
             options: PackOptions,
             writer: anytype,
         ) PackError(@TypeOf(writer))!void {
-            try mzg.packWithOptions(self.container.items.len, options, writer);
+            try mzg.packArray(self.container.items.len, writer);
             for (self.container.items) |*item| {
                 try mzg.packWithOptions(item, options, writer);
             }
@@ -41,7 +41,7 @@ pub fn ArrayUnpacker(comptime Container: type) type {
 
         pub fn mzgUnpack(self: Self, buffer: []const u8) UnpackError!usize {
             var len: u32 = undefined;
-            var size: usize = try mzg.unpack(buffer, &len);
+            var size: usize = try mzg.unpackArray(buffer, &len);
 
             for (0..len) |_| {
                 size += mzg.unpack(
