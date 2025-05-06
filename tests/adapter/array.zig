@@ -18,7 +18,7 @@ test "pack and unpack with array adapter" {
     defer out.deinit(allocator);
     _ = try mzg.unpack(
         buffer.items,
-        adapter.unpackArray(&out, allocator),
+        adapter.unpackArray(allocator, &out),
     );
 
     try t.expectEqualDeep(in, out);

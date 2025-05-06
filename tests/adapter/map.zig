@@ -19,7 +19,7 @@ test "pack and unpack with map adapter" {
     defer out.deinit(allocator);
     _ = try mzg.unpack(
         buffer.items,
-        adapter.unpackMap(&out, .use_first, allocator),
+        adapter.unpackMap(allocator, &out, .use_first),
     );
 
     var iter = in.iterator();
@@ -38,7 +38,7 @@ test "unpack with map adapter" {
 
     _ = try mzg.unpack(
         content,
-        adapter.unpackMap(&out, .@"error", allocator),
+        adapter.unpackMap(allocator, &out, .@"error"),
     );
 
     try t.expectEqual(1, out.count());
@@ -59,7 +59,7 @@ test "pack and unpack StaticStringMap with map adapter" {
     var out: std.StringArrayHashMapUnmanaged([]const u8) = .empty;
     _ = try mzg.unpack(
         buffer.items,
-        adapter.unpackMap(&out, .use_first, allocator),
+        adapter.unpackMap(allocator, &out, .use_first),
     );
     defer out.deinit(allocator);
 

@@ -49,9 +49,9 @@ pub fn MapUnpacker(comptime Container: type) type {
         behavior: DuplicateFieldBehavior,
 
         pub fn init(
+            allocator: std.mem.Allocator,
             container: *Container,
             behavior: DuplicateFieldBehavior,
-            allocator: std.mem.Allocator,
         ) Self {
             return .{
                 .container = container,
@@ -98,11 +98,11 @@ pub fn MapUnpacker(comptime Container: type) type {
 }
 
 pub fn unpackMap(
+    allocator: std.mem.Allocator,
     out: anytype,
     behavior: DuplicateFieldBehavior,
-    allocator: std.mem.Allocator,
 ) MapUnpacker(std.meta.Child(@TypeOf(out))) {
-    return .init(out, behavior, allocator);
+    return .init(allocator, out, behavior);
 }
 
 const std = @import("std");

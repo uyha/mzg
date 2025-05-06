@@ -35,7 +35,7 @@ test "pack and unpack with stream adapter" {
     defer out.deinit(allocator);
     _ = try mzg.unpack(
         buffer.items,
-        adapter.unpackStream(&out, allocator),
+        adapter.unpackStream(allocator, &out),
     );
 
     try t.expectEqualDeep(in, out);

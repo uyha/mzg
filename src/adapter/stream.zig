@@ -34,7 +34,7 @@ pub fn StreamUnpacker(comptime Container: type) type {
         container: *Container,
         allocator: std.mem.Allocator,
 
-        pub fn init(container: *Container, allocator: std.mem.Allocator) Self {
+        pub fn init(allocator: std.mem.Allocator, container: *Container) Self {
             return .{ .container = container, .allocator = allocator };
         }
 
@@ -56,8 +56,8 @@ pub fn StreamUnpacker(comptime Container: type) type {
 }
 
 pub fn unpackStream(
-    out: anytype,
     allocator: std.mem.Allocator,
+    out: anytype,
 ) StreamUnpacker(std.meta.Child(@TypeOf(out))) {
-    return .init(out, allocator);
+    return .init(allocator, out);
 }

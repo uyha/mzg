@@ -58,8 +58,8 @@ pub fn ArrayUnpacker(comptime Container: type) type {
 }
 
 pub fn unpackArray(
-    out: anytype,
     allocator: std.mem.Allocator,
+    out: anytype,
 ) ArrayUnpacker(std.meta.Child(@TypeOf(out))) {
     return .init(out, allocator);
 }
