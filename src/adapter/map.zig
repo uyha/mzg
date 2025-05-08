@@ -1,41 +1,43 @@
-pub fn MapPacker(comptime Container: type) type {
+pub fn MapPacker(comptime Source: type) type {
     return struct {
         const Self = @This();
-        container: *const Container,
+        source: Source,
 
-        pub fn init(container: *const Container) Self {
-            return .{ .container = container };
+        pub fn init(source: Source) Self {
+            return .{ .source = source };
         }
 
         pub fn mzgPack(
             self: Self,
             options: PackOptions,
+            comptime map: anytype,
             writer: anytype,
         ) PackError(@TypeOf(writer))!void {
+            const Container = StripPointer(Source);
             if (comptime meta.hasFn(Container, "count") and meta.hasFn(Container, "iterator")) {
-                try mzg.packMap(self.container.count(), writer);
-                var iterator = self.container.iterator();
+                try mzg.packMap(self.source.count(), writer);
+                var iterator = self.source.iterator();
                 while (iterator.next()) |*kv| {
-                    try mzg.packWithOptions(kv.key_ptr, options, writer);
-                    try mzg.packWithOptions(kv.value_ptr, options, writer);
+                    try mzg.packAdaptedWithOptions(kv.key_ptr, options, map, writer);
+                    try mzg.packAdaptedWithOptions(kv.value_ptr, options, map, writer);
                 }
             } else if (comptime meta.hasFn(Container, "keys") and meta.hasFn(Container, "values")) {
-                const keys = self.container.keys();
-                const values = self.container.values();
+                const keys = self.source.keys();
+                const values = self.source.values();
 
                 try mzg.packMap(keys.len, writer);
 
                 for (keys, values) |key, value| {
-                    try mzg.packWithOptions(key, options, writer);
-                    try mzg.packWithOptions(value, options, writer);
+                    try mzg.packAdaptedWithOptions(key, options, map, writer);
+                    try mzg.packAdaptedWithOptions(value, options, map, writer);
                 }
             } else {
-                @compileError(@typeName(Container) ++ " is not supported");
+                @compileError(@typeName(Source) ++ " is not supported");
             }
         }
     };
 }
-pub fn packMap(in: anytype) MapPacker(std.meta.Child(@TypeOf(in))) {
+pub fn packMap(in: anytype) MapPacker(@TypeOf(in)) {
     return .init(in);
 }
 
@@ -101,7 +103,7 @@ pub fn unpackMap(
     allocator: std.mem.Allocator,
     out: anytype,
     behavior: DuplicateFieldBehavior,
-) MapUnpacker(std.meta.Child(@TypeOf(out))) {
+) MapUnpacker(StripPointer(@TypeOf(out))) {
     return .init(allocator, out, behavior);
 }
 
@@ -112,3 +114,4 @@ const mzg = @import("root.zig").mzg;
 const UnpackError = mzg.UnpackError;
 const PackError = mzg.PackError;
 const PackOptions = mzg.PackOptions;
+const StripPointer = @import("../utils.zig").StripPointer;

@@ -38,6 +38,18 @@ pub const PackOptions = struct {
 
 /// Pack the given Zig value as MessagePack
 ///
+/// This functions provides 2 ways for customization, the `map` and `options`
+/// parameters.
+/// * The `map` parameter allows customization for types that you do
+///   not own and hence cannot modify it.
+/// * The `options` parameter allows customization for builtin types that is
+///   supported by this function.
+///
+/// `map` must be a tuple of 2 element tuples. The 2 element tuples must
+/// have a type as their 1st element `T`, and the 2nd element must be a
+/// function that accepts a `T` instance and returns a type that can be called
+/// with `packAdaptedWithOptions`.
+///
 /// Supported types:
 /// * Zig `null` and `void` -> `nil`.
 /// * Zig `bool` -> `bool`.
@@ -91,16 +103,31 @@ pub const PackOptions = struct {
 ///           case, if `options.skip_null` is `true`, null fields will be
 ///           skipped.
 /// * Zig slices, arrays, sentinel-terminated pointers, and @Vector of `u8` ->
-///   `str` if `options.byte_slice` is `.str`, otherwise, `bin`.
+///   `str` if `options.byte_slice` is `.str`, otherwise, `.bin`.
 /// * Zig slices, arrays, sentinel-terminated pointers of other types -> `array`
 ///   of the elements.
 /// * Zig `*T` -> packed as `T`
-pub fn packWithOptions(
+pub fn packAdaptedWithOptions(
     value: anytype,
     options: PackOptions,
+    comptime map: anytype,
     writer: anytype,
 ) mzg.PackError(@TypeOf(writer))!void {
     const Value = @TypeOf(value);
+
+    inline for (map) |entry| {
+        const T, const adapter = entry;
+        switch (Value) {
+            T, *T, *const T => return packAdaptedWithOptions(
+                adapter(value),
+                options,
+                map,
+                writer,
+            ),
+            else => {},
+        }
+    }
+
     switch (@typeInfo(Value)) {
         .null, .void => try mzg.packNil(writer),
         .bool => try mzg.packBool(value, writer),
@@ -108,14 +135,14 @@ pub fn packWithOptions(
         .comptime_float, .float => try mzg.packFloat(value, writer),
         .optional => {
             if (value) |payload| {
-                return packWithOptions(payload, options, writer);
+                return packAdaptedWithOptions(payload, options, map, writer);
             } else {
                 return mzg.packNil(writer);
             }
         },
         .@"enum" => |info| {
             if (std.meta.hasFn(Value, "mzgPack")) {
-                return value.mzgPack(options, writer);
+                return value.mzgPack(options, map, writer);
             }
             if (!info.is_exhaustive) {
                 return mzg.packInt(@intFromEnum(value), writer);
@@ -130,14 +157,15 @@ pub fn packWithOptions(
         },
         .@"union" => |info| {
             if (std.meta.hasFn(Value, "mzgPack")) {
-                return value.mzgPack(options, writer);
+                return value.mzgPack(options, map, writer);
             }
 
             if (info.tag_type != null) {
                 switch (value) {
-                    inline else => |payload, tag| return packWithOptions(
+                    inline else => |payload, tag| return packAdaptedWithOptions(
                         .{ tag, payload },
                         options,
+                        map,
                         writer,
                     ),
                 }
@@ -149,14 +177,15 @@ pub fn packWithOptions(
         },
         .@"struct" => |info| {
             if (std.meta.hasFn(Value, "mzgPack")) {
-                return value.mzgPack(options, writer);
+                return value.mzgPack(options, map, writer);
             }
             if (info.is_tuple) {
                 try mzg.packArray(info.fields.len, writer);
                 inline for (info.fields) |field| {
-                    try packWithOptions(
+                    try packAdaptedWithOptions(
                         @field(value, field.name),
                         options,
+                        map,
                         writer,
                     );
                 }
@@ -173,9 +202,10 @@ pub fn packWithOptions(
                 .array => {
                     try mzg.packArray(info.fields.len, writer);
                     inline for (info.fields) |field| {
-                        try packWithOptions(
+                        try packAdaptedWithOptions(
                             @field(value, field.name),
                             options,
+                            map,
                             writer,
                         );
                     }
@@ -197,17 +227,19 @@ pub fn packWithOptions(
                         if (@typeInfo(field.type) == .optional) {
                             if (@field(value, field.name) != null) {
                                 try mzg.packStr(field.name, writer);
-                                try packWithOptions(
+                                try packAdaptedWithOptions(
                                     @field(value, field.name),
                                     options,
+                                    map,
                                     writer,
                                 );
                             }
                         } else {
                             try mzg.packStr(field.name, writer);
-                            try packWithOptions(
+                            try packAdaptedWithOptions(
                                 @field(value, field.name),
                                 options,
+                                map,
                                 writer,
                             );
                         }
@@ -217,9 +249,10 @@ pub fn packWithOptions(
                     try mzg.packMap(info.fields.len, writer);
                     inline for (info.fields) |field| {
                         try mzg.packStr(field.name, writer);
-                        try packWithOptions(
+                        try packAdaptedWithOptions(
                             @field(value, field.name),
                             options,
+                            map,
                             writer,
                         );
                     }
@@ -230,19 +263,29 @@ pub fn packWithOptions(
             if (value) |payload| {
                 try mzg.packArray(writer, 2);
                 try mzg.packInt(writer, 0);
-                try packWithOptions(payload, options, writer);
+                try packAdaptedWithOptions(payload, options, map, writer);
             } else |err| {
                 try mzg.packArray(writer, 1);
-                try packWithOptions(err, options, writer);
+                try packAdaptedWithOptions(err, options, map, writer);
             }
         },
         .pointer => |ptr| switch (ptr.size) {
             .one => switch (@typeInfo(ptr.child)) {
                 .array => {
                     const Slice = []const std.meta.Elem(ptr.child);
-                    return packWithOptions(@as(Slice, value), options, writer);
+                    return packAdaptedWithOptions(
+                        @as(Slice, value),
+                        options,
+                        map,
+                        writer,
+                    );
                 },
-                else => return packWithOptions(value.*, options, writer),
+                else => return packAdaptedWithOptions(
+                    value.*,
+                    options,
+                    map,
+                    writer,
+                ),
             },
             .many, .slice => {
                 if (ptr.size == .many and ptr.sentinel() == null) {
@@ -262,20 +305,38 @@ pub fn packWithOptions(
 
                 try mzg.packArray(slice.len, writer);
                 for (slice) |elem| {
-                    try packWithOptions(elem, options, writer);
+                    try packAdaptedWithOptions(elem, options, map, writer);
                 }
                 return;
             },
             else => @compileError("Cannot pack '" ++ @typeName(Value) ++ "'"),
         },
-        .array => return packWithOptions(&value, options, writer),
+        .array => return packAdaptedWithOptions(&value, options, map, writer),
         .vector => |vec| {
             const array: [vec.len]vec.child = value;
-            return packWithOptions(&array, options, writer);
+            return packAdaptedWithOptions(&array, options, map, writer);
         },
 
         else => @compileError("'" ++ @typeName(Value) ++ "' is not supported"),
     }
+}
+
+/// Calls `packAdaptedWithOptions` with empty map
+pub fn packWithOptions(
+    value: anytype,
+    options: PackOptions,
+    writer: anytype,
+) mzg.PackError(@TypeOf(writer))!void {
+    return packAdaptedWithOptions(value, options, comptime .{}, writer);
+}
+
+/// Calls `packAdaptedWithOptions` with `.default` options
+pub fn packAdapted(
+    value: anytype,
+    comptime map: anytype,
+    writer: anytype,
+) mzg.PackError(@TypeOf(writer))!void {
+    return packAdaptedWithOptions(value, comptime .default, map, writer);
 }
 
 /// Calls `packWithOptions` with `.default` options

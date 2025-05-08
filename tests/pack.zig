@@ -1,7 +1,3 @@
-const std = @import("std");
-const mzg = @import("mzg");
-const PackOptions = mzg.PackOptions;
-
 fn expect(comptime options: PackOptions, expected: anytype, input: anytype) !void {
     var buffer: std.ArrayListUnmanaged(u8) = .empty;
     defer buffer.deinit(std.testing.allocator);
@@ -32,8 +28,8 @@ test "pack int" {
     );
 }
 test "pack float" {
-    try expect(.default, &[_]u8{ 0xCA, 0x3F, 0x80, 0x00, 0x00 }, @as(f16, 1.0));
-    try expect(.default, &[_]u8{ 0xCA, 0x3F, 0x80, 0x00, 0x00 }, @as(f32, 1.0));
+    try expect(.default, "\xCA\x3F\x80\x00\x00", @as(f16, 1.0));
+    try expect(.default, "\xCA\x3F\x80\x00\x00", @as(f32, 1.0));
 }
 test "pack optional" {
     try expect(.default, &[_]u8{0x01}, @as(?u8, 1));
@@ -49,7 +45,12 @@ test "pack enum" {
 
     const C = enum {
         a,
-        pub fn mzgPack(_: @This(), _: mzg.PackOptions, writer: anytype) !void {
+        pub fn mzgPack(
+            _: @This(),
+            _: mzg.PackOptions,
+            comptime _: anytype,
+            writer: anytype,
+        ) !void {
             try mzg.packInt(1, writer);
         }
     };
@@ -71,7 +72,12 @@ test "pack tagged union" {
         a: u8,
         b: ?u16,
         c: bool,
-        pub fn mzgPack(_: @This(), _: mzg.PackOptions, writer: anytype) !void {
+        pub fn mzgPack(
+            _: @This(),
+            _: mzg.PackOptions,
+            comptime _: anytype,
+            writer: anytype,
+        ) !void {
             try mzg.packInt(1, writer);
         }
     };
@@ -94,13 +100,13 @@ test "pack struct" {
     );
     try expect(
         .stringly,
-        &[_]u8{ 0x82, 0xA1, 0x61, 0x01, 0xA1, 0x62, 0xCA, 0x3F, 0x80, 0x00, 0x00 },
+        "\x82\xA1\x61\x01\xA1\x62\xCA\x3F\x80\x00\x00",
         S{ .a = 1, .b = 1.0 },
     );
-    try expect(.stringly, &[_]u8{ 0x81, 0xA1, 0x61, 0x01 }, S{ .a = 1, .b = null });
+    try expect(.stringly, "\x81\xA1\x61\x01", S{ .a = 1, .b = null });
     try expect(
         .full_stringly,
-        &[_]u8{ 0x82, 0xA1, 0x61, 0x01, 0xA1, 0x62, 0xC0 },
+        "\x82\xA1\x61\x01\xA1\x62\xC0",
         S{ .a = 1, .b = null },
     );
 
@@ -108,7 +114,12 @@ test "pack struct" {
         a: u16,
         b: ?f32,
 
-        pub fn mzgPack(_: @This(), _: mzg.PackOptions, writer: anytype) !void {
+        pub fn mzgPack(
+            _: @This(),
+            _: mzg.PackOptions,
+            comptime _: anytype,
+            writer: anytype,
+        ) !void {
             try mzg.packInt(1, writer);
         }
     };
@@ -171,3 +182,40 @@ test "pack Timestamp" {
         ts,
     );
 }
+
+test "pack adapted" {
+    const t = std.testing;
+    const allocator = t.allocator;
+
+    const String = std.ArrayListUnmanaged(u8);
+    const Map = std.StringArrayHashMapUnmanaged(String);
+    const Value = std.ArrayListUnmanaged(Map);
+
+    var value: Value = .empty;
+    defer value.deinit(allocator);
+
+    try value.append(allocator, .empty);
+    try value.items[0].put(allocator, "key", .empty);
+    defer value.items[0].deinit(allocator);
+
+    const item = value.items[0].getPtr("key").?;
+    try item.appendSlice(allocator, "value");
+    defer item.deinit(allocator);
+
+    var buffer: std.ArrayListUnmanaged(u8) = .empty;
+    defer buffer.deinit(allocator);
+    const writer = buffer.writer(allocator);
+
+    try mzg.packAdapted(value, .{
+        .{ String, adapter.packArray },
+        .{ Map, adapter.packMap },
+        .{ Value, adapter.packArray },
+    }, writer);
+
+    try t.expectEqualStrings("\x91\x81\xA3key\x95value", buffer.items);
+}
+
+const std = @import("std");
+const mzg = @import("mzg");
+const adapter = mzg.adapter;
+const PackOptions = mzg.PackOptions;

@@ -33,6 +33,8 @@ pub const PackError = @import("error.zig").PackError;
 pub const PackOptions = @import("pack.zig").PackOptions;
 pub const packWithOptions = @import("pack.zig").packWithOptions;
 pub const pack = @import("pack.zig").pack;
+pub const packAdapted = @import("pack.zig").packAdapted;
+pub const packAdaptedWithOptions = @import("pack.zig").packAdaptedWithOptions;
 
 pub const UnpackError = @import("error.zig").UnpackError;
 pub const unpack = @import("unpack.zig").unpack;

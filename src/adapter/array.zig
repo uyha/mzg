@@ -3,29 +3,31 @@ const mzg = @import("root.zig").mzg;
 const UnpackError = mzg.UnpackError;
 const PackError = mzg.PackError;
 const PackOptions = mzg.PackOptions;
+const StripPointer = @import("../utils.zig").StripPointer;
 
-pub fn ArrayPacker(comptime Container: type) type {
+pub fn ArrayPacker(comptime Source: type) type {
     return struct {
         const Self = @This();
-        container: *const Container,
+        source: Source,
 
-        pub fn init(container: *const Container) Self {
-            return .{ .container = container };
+        pub fn init(source: Source) Self {
+            return .{ .source = source };
         }
 
         pub fn mzgPack(
             self: Self,
             options: PackOptions,
+            comptime map: anytype,
             writer: anytype,
         ) PackError(@TypeOf(writer))!void {
-            try mzg.packArray(self.container.items.len, writer);
-            for (self.container.items) |*item| {
-                try mzg.packWithOptions(item, options, writer);
+            try mzg.packArray(self.source.items.len, writer);
+            for (self.source.items) |*item| {
+                try mzg.packAdaptedWithOptions(item, options, map, writer);
             }
         }
     };
 }
-pub fn packArray(in: anytype) ArrayPacker(std.meta.Child(@TypeOf(in))) {
+pub fn packArray(in: anytype) ArrayPacker(@TypeOf(in)) {
     return .init(in);
 }
 
@@ -60,6 +62,6 @@ pub fn ArrayUnpacker(comptime Container: type) type {
 pub fn unpackArray(
     allocator: std.mem.Allocator,
     out: anytype,
-) ArrayUnpacker(std.meta.Child(@TypeOf(out))) {
+) ArrayUnpacker(StripPointer(@TypeOf(out))) {
     return .init(out, allocator);
 }

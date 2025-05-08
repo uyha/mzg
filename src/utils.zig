@@ -36,3 +36,10 @@ pub fn readIntBounded(
         return null;
     }
 }
+
+pub fn StripPointer(T: type) type {
+    return switch (@typeInfo(T)) {
+        .pointer => |info| StripPointer(info.child),
+        else => T,
+    };
+}

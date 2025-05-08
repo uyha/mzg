@@ -3,28 +3,30 @@ const mzg = @import("root.zig").mzg;
 const UnpackError = mzg.UnpackError;
 const PackError = mzg.PackError;
 const PackOptions = mzg.PackOptions;
+const StripPointer = @import("../utils.zig").StripPointer;
 
-pub fn StreamPacker(comptime Container: type) type {
+pub fn StreamPacker(comptime Source: type) type {
     return struct {
         const Self = @This();
-        container: *const Container,
+        source: Source,
 
-        pub fn init(container: *const Container) Self {
-            return .{ .container = container };
+        pub fn init(source: Source) Self {
+            return .{ .source = source };
         }
 
         pub fn mzgPack(
             self: Self,
             options: PackOptions,
+            comptime map: anytype,
             writer: anytype,
         ) PackError(@TypeOf(writer))!void {
-            for (self.container.items) |*item| {
-                try mzg.packWithOptions(item, options, writer);
+            for (self.source.items) |*item| {
+                try mzg.packAdaptedWithOptions(item, options, map, writer);
             }
         }
     };
 }
-pub fn packStream(in: anytype) StreamPacker(std.meta.Child(@TypeOf(in))) {
+pub fn packStream(in: anytype) StreamPacker(@TypeOf(in)) {
     return .init(in);
 }
 
@@ -58,6 +60,6 @@ pub fn StreamUnpacker(comptime Container: type) type {
 pub fn unpackStream(
     allocator: std.mem.Allocator,
     out: anytype,
-) StreamUnpacker(std.meta.Child(@TypeOf(out))) {
+) StreamUnpacker(StripPointer(@TypeOf(out))) {
     return .init(allocator, out);
 }
