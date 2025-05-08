@@ -49,7 +49,7 @@ test "pack enum" {
 
     const C = enum {
         a,
-        pub fn mzgPack(_: @This(), writer: anytype) !void {
+        pub fn mzgPack(_: @This(), _: mzg.PackOptions, writer: anytype) !void {
             try mzg.packInt(1, writer);
         }
     };
@@ -71,7 +71,7 @@ test "pack tagged union" {
         a: u8,
         b: ?u16,
         c: bool,
-        pub fn mzgPack(_: @This(), writer: anytype) !void {
+        pub fn mzgPack(_: @This(), _: mzg.PackOptions, writer: anytype) !void {
             try mzg.packInt(1, writer);
         }
     };
@@ -108,7 +108,7 @@ test "pack struct" {
         a: u16,
         b: ?f32,
 
-        pub fn mzgPack(_: @This(), writer: anytype) !void {
+        pub fn mzgPack(_: @This(), _: mzg.PackOptions, writer: anytype) !void {
             try mzg.packInt(1, writer);
         }
     };

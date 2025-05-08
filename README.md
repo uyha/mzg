@@ -207,14 +207,10 @@ const adapter = mzg.adapter;
 
 #### Packing
 
-When an enum/union/struct has an `mzgPack` function that can be called with
+When an enum/union/struct has an `mzgPack` function that returns
+`mzg.PackError(@TypeOf(writer))!void` can be called with
 
 ```zig
-// Value only needs the writer
-value.mzgPack(writer);
-
-// or
-
 // Value cares about the options passed by the caller
 value.mzgPack(options, writer);
 ```

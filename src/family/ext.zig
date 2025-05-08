@@ -1,11 +1,3 @@
-const builtin = @import("builtin");
-const std = @import("std");
-const utils = @import("../utils.zig");
-const parseFormat = @import("format.zig").parse;
-
-const PackError = @import("../error.zig").PackError;
-const UnpackError = @import("../error.zig").UnpackError;
-
 pub const Ext = struct {
     const Self = @This();
 
@@ -155,7 +147,7 @@ pub const Timestamp = struct {
         };
     }
 
-    pub fn mzgPack(self: Self, writer: anytype) !void {
+    pub fn mzgPack(self: Self, _: PackOptions, writer: anytype) !void {
         return packTimestamp(self, writer);
     }
     pub fn mzgUnpack(out: *Self, buffer: []const u8) UnpackError!usize {
@@ -227,3 +219,12 @@ pub fn unpackTimestamp(out: *Timestamp, buffer: []const u8) UnpackError!usize {
 
     return size + ext.len;
 }
+
+const builtin = @import("builtin");
+const std = @import("std");
+const utils = @import("../utils.zig");
+const parseFormat = @import("format.zig").parse;
+
+const PackError = @import("../error.zig").PackError;
+const UnpackError = @import("../error.zig").UnpackError;
+const PackOptions = @import("../root.zig").PackOptions;

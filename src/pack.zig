@@ -50,8 +50,11 @@ pub const PackOptions = struct {
 ///   `child` type.
 /// * Zig enums ->
 ///     * If the enum has the method
-///       `pub fn mzgPack(self: *@This(), writer: anytype) !void`, or
-///       `pub fn mzgPack(self: *@This(), options: PackOptions, writer: anytype) !void`,
+///       `pub fn mzgPack(
+///         self: *@This(),
+///         options: PackOptions,
+///         writer: anytype,
+///       ) PackError(@TypeOf(writer))!void`,
 ///       then it is called.
 ///     * If enum is non-exhaustive, it is packed as `int` using its value.
 ///     * Otherwise, if `options.@"enum"` is `.name`, then the name of the enum
@@ -59,8 +62,11 @@ pub const PackOptions = struct {
 /// * Zig untyped enum literal -> `str`.
 /// * Zig unions ->
 ///     * If the union has the method
-///       `pub fn mzgPack(self: *@This(), writer: anytype) !void`, or
-///       `pub fn mzgPack(self: *@This(), options: PackOptions, writer: anytype) !void`,
+///       `pub fn mzgPack(
+///         self: *@This(),
+///         options: PackOptions,
+///         writer: anytype,
+///       ) PackError(@TypeOf(writer))!void`,
 ///       then it is called.
 ///     * Otherwise, if the union is a tagged union, it is packed as an `array` with 2
 ///       elements, the first being the tag enum, and the second being the actual value
@@ -68,8 +74,11 @@ pub const PackOptions = struct {
 ///     * Otherwise, untagged unions cannot be packed.
 /// * Zig structs ->
 ///     * If the struct has the method
-///       `pub fn mzgPack(self: *@This(), writer: anytype) !void`, or
-///       `pub fn mzgPack(self: *@This(), options: PackOptions, writer: anytype) !void`,
+///       `pub fn mzgPack(
+///         self: *@This(),
+///         options: PackOptions,
+///         writer: anytype,
+///       ) PackError(@TypeOf(writer))!void`,
 ///       then it is called.
 ///     * Otherwise, if it is a tuple, all the fields are packed in an `array` in the
 ///       order they are declared.
@@ -106,13 +115,7 @@ pub fn packWithOptions(
         },
         .@"enum" => |info| {
             if (std.meta.hasFn(Value, "mzgPack")) {
-                switch (@typeInfo(@TypeOf(Value.mzgPack)).@"fn".params.len) {
-                    2 => return value.mzgPack(writer),
-                    3 => return value.mzgPack(options, writer),
-                    else => @compileError(
-                        "mzgPack function can only have either 2 or 3 arguments",
-                    ),
-                }
+                return value.mzgPack(options, writer);
             }
             if (!info.is_exhaustive) {
                 return mzg.packInt(@intFromEnum(value), writer);
@@ -127,13 +130,7 @@ pub fn packWithOptions(
         },
         .@"union" => |info| {
             if (std.meta.hasFn(Value, "mzgPack")) {
-                switch (@typeInfo(@TypeOf(Value.mzgPack)).@"fn".params.len) {
-                    2 => return value.mzgPack(writer),
-                    3 => return value.mzgPack(options, writer),
-                    else => @compileError(
-                        "mzgPack function can only have either 2 or 3 arguments",
-                    ),
-                }
+                return value.mzgPack(options, writer);
             }
 
             if (info.tag_type != null) {
@@ -152,13 +149,7 @@ pub fn packWithOptions(
         },
         .@"struct" => |info| {
             if (std.meta.hasFn(Value, "mzgPack")) {
-                switch (@typeInfo(@TypeOf(Value.mzgPack)).@"fn".params.len) {
-                    2 => return value.mzgPack(writer),
-                    3 => return value.mzgPack(options, writer),
-                    else => @compileError(
-                        "mzgPack function can only have either 2 or 3 arguments",
-                    ),
-                }
+                return value.mzgPack(options, writer);
             }
             if (info.is_tuple) {
                 try mzg.packArray(info.fields.len, writer);
