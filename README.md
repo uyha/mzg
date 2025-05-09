@@ -45,12 +45,35 @@ the streaming usage.
 
 ### High level functions
 
-1. `pack` for packing Zig values using a `writer`
-1. `packWithOptions` is like `pack` but accepts a `mzg.PackOptions` parameter to
-   control the packing behavior.
-1. `unpack` for unpacking a MessagePack message into a Zig object
-1. A set of adapters living in the `mzg.adapter` namespace to help with packing
-   and unpacking common container types.
+### Packing functions
+
+1. `pack` is for packing Zig values using a `writer`
+1. `packAdapted` is like `pack` but it accepts a map that defines how certain
+   types should be packed.
+1. `packWithOptions` is like `pack` but it accepts a `mzg.PackOptions` parameter
+   to control the packing behavior.
+1. `packAdaptedWithOptions` is like `packWithOptions` but it accepts a map that
+   defines how certain types should be packed.
+
+### Unpacking functions
+
+1. `unpack` is for unpacking a MessagePack message into a Zig object and it does
+   not allocate memory.
+1. `unpackAdapted` is like `unpack` but it accepts a map that defines how
+   certain types should be unpacked.
+1. `unpackAllocate` is like `unpack` but it accepts an `Allocator` that allows
+   the unpacking process to allocate memory.
+1. `unpackAdaptedAllocate` is like `unpackAllocate` but it accepts a map that
+   defines how a particular type should be packed.
+
+### Adapters
+
+1. `adapter.packArray` and `adapter.unpackArray` pack and unpack structs like
+   `std.ArrayListUnmanaged`
+1. `adapter.packMap` and `adapter.unpackMap` pack and unpack structs like
+   `std.ArrayHashMapUnmanaged`.
+1. `adapter.packStream` and `adapter.unpackStream` pack and unpack structs in a
+   stream like manner (length is not specified in the beginning).
 
 ### Building block functions
 
@@ -212,25 +235,46 @@ When an enum/union/struct has an `mzgPack` function that returns
 
 ```zig
 // Value cares about the options passed by the caller
-value.mzgPack(options, writer);
+value.mzgPack(options, map, writer);
 ```
+
+With the arguments being
 
 - `value` is the enum/union/struct being packed.
 - `options` is `mzg.PackOptions`.
+- `map` is a tuple of 2 element tuples whose 1st element being a type and 2nd
+  element being a packing adapter function.
 - `writer` is `anytype` that can be called with `writer.writeAll(&[_]u8{});`.
 
 The function will be called when the `mzg.pack` function is used.
 
 #### Unpacking
 
-When an enum/union/struct has an `mzgUnpack` function that returns
-`UnpackError!usize` and can be called with
+When an enum/union/struct has
 
-```zig
-out.mzgUnpack(buffer);
-```
+- `mzgUnpack` function that returns `UnpackError!usize` and can be called with
+
+  ```zig
+  out.mzgUnpack(map, buffer);
+  ```
+
+- `mzgUnpackAllocate` function that returns `UnpackError!usize` and can be
+  called with
+
+  ```zig
+  out.mzgUnpackAllocate(allocator, map, buffer);
+  ```
+
+With the arguments being
 
 - `out` is the enum/union/struct being unpacked.
+- `allocator` is an `std.mem.Allocator`.
+- `map` is a tuple of 2 element tuples whose 1st element being a type and 2nd
+  element being an unpacking adapter function.
 - `buffer` is `[]const u8`.
 
-The function will be called when the `mzg.unpack` function is used.
+The `mzgUnpack` function is called when either `mzg.unpack` or
+`mzg.unpackAdapted` is used.
+
+The `mzgUnpackAllocate` function is called when either `mzg.unpackAllocate` or
+`mzg.unpackAdaptedAllocate` is used.
