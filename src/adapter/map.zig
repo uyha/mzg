@@ -58,6 +58,8 @@ pub fn MapUnpacker(comptime Out: type) type {
             var len: u32 = undefined;
             var size: usize = try mzg.unpackMap(buffer, &len);
 
+            self.out.* = .empty;
+
             var key: @FieldType(Out.KV, "key") = undefined;
             var value: @FieldType(Out.KV, "value") = undefined;
             for (0..len) |_| {

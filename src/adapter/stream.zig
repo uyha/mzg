@@ -36,6 +36,8 @@ pub fn StreamUnpacker(comptime Out: type) type {
         ) UnpackAllocateError!usize {
             var size: usize = 0;
 
+            self.out.* = .empty;
+
             while (size < buffer.len) {
                 size += mzg.unpackAdaptedAllocate(
                     allocator,
