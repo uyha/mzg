@@ -1,9 +1,3 @@
-const unpack = @import("mzg").unpack;
-const UnpackError = @import("mzg").UnpackError;
-
-const std = @import("std");
-const expectEqual = std.testing.expectEqual;
-const expectEqualDeep = std.testing.expectEqualDeep;
 test "unpack void" {
     var buffer: void = {};
     try expectEqual(1, unpack(&[_]u8{0xC0}, &buffer));
@@ -76,7 +70,11 @@ test "unpack enum" {
 
     const C = enum {
         a,
-        pub fn mzgUnpack(self: *@This(), buffer: []const u8) UnpackError!usize {
+        pub fn mzgUnpack(
+            self: *@This(),
+            comptime _: anytype,
+            buffer: []const u8,
+        ) UnpackError!usize {
             _ = buffer;
             _ = self;
 
@@ -151,7 +149,11 @@ test "unpack struct" {
         a: u32,
         b: ?[]u8,
 
-        pub fn mzgUnpack(self: *@This(), buffer: []const u8) UnpackError!usize {
+        pub fn mzgUnpack(
+            self: *@This(),
+            comptime _: anytype,
+            buffer: []const u8,
+        ) UnpackError!usize {
             self.b = null;
             return @import("mzg").unpackInt(buffer, &self.a);
         }
@@ -177,3 +179,85 @@ test "unpack struct" {
         },
     }
 }
+
+test "unpack adapted" {
+    const String = std.ArrayListUnmanaged(u8);
+    const C = struct {
+        a: u32,
+        b: ?[]u8,
+        c: String,
+
+        pub fn mzgUnpackAllocate(
+            self: *@This(),
+            allocator: Allocator,
+            comptime map: anytype,
+            buffer: []const u8,
+        ) UnpackAllocateError!usize {
+            self.b = null;
+            var consumed = try @import("mzg").unpackInt(buffer, &self.a);
+            consumed += try mzg.unpackAdaptedAllocate(
+                allocator,
+                map,
+                buffer[consumed..],
+                &self.c,
+            );
+            return consumed;
+        }
+    };
+
+    const t = std.testing;
+    const allocator = t.allocator;
+
+    {
+        var actual: C = undefined;
+        try expectEqual(2, unpackAdaptedAllocate(
+            allocator,
+            .{
+                .{ String, adapter.unpackArray },
+            },
+            "\x01\x90",
+            &actual,
+        ));
+        const expected = C{ .a = 1, .b = null, .c = .empty };
+        try t.expectEqual(expected.a, actual.a);
+        try t.expectEqual(expected.b, actual.b);
+        try t.expectEqualStrings(expected.c.items, actual.c.items);
+    }
+
+    {
+        var actual: struct { u32, C } = undefined;
+        defer actual[1].c.deinit(allocator);
+
+        try expectEqual(8, unpackAdaptedAllocate(
+            allocator,
+            .{
+                .{ String, adapter.unpackArray },
+            },
+            "\x92\x01\x01\x94test",
+            &actual,
+        ));
+        var expected: @TypeOf(actual) = .{
+            0x01,
+            C{ .a = 1, .b = null, .c = .empty },
+        };
+        try expected[1].c.appendSlice(allocator, "test");
+        defer expected[1].c.deinit(allocator);
+
+        try t.expectEqual(expected[0], actual[0]);
+        try t.expectEqual(expected[1].a, actual[1].a);
+        try t.expectEqual(expected[1].b, actual[1].b);
+        try t.expectEqualStrings(expected[1].c.items, actual[1].c.items);
+    }
+}
+
+const mzg = @import("mzg");
+const adapter = mzg.adapter;
+const unpack = mzg.unpack;
+const unpackAdaptedAllocate = mzg.unpackAdaptedAllocate;
+const UnpackError = @import("mzg").UnpackError;
+const UnpackAllocateError = @import("mzg").UnpackAllocateError;
+
+const std = @import("std");
+const expectEqual = std.testing.expectEqual;
+const expectEqualDeep = std.testing.expectEqualDeep;
+const Allocator = std.mem.Allocator;

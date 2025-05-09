@@ -29,15 +29,19 @@ pub const unpackTimestamp = ext.unpackTimestamp;
 pub const format = @import("family/format.zig");
 
 pub const PackError = @import("error.zig").PackError;
+pub const UnpackError = @import("error.zig").UnpackError;
+pub const UnpackAllocateError = @import("error.zig").UnpackAllocateError;
 
 pub const PackOptions = @import("pack.zig").PackOptions;
-pub const packWithOptions = @import("pack.zig").packWithOptions;
 pub const pack = @import("pack.zig").pack;
 pub const packAdapted = @import("pack.zig").packAdapted;
+pub const packWithOptions = @import("pack.zig").packWithOptions;
 pub const packAdaptedWithOptions = @import("pack.zig").packAdaptedWithOptions;
 
-pub const UnpackError = @import("error.zig").UnpackError;
 pub const unpack = @import("unpack.zig").unpack;
+pub const unpackAdapted = @import("unpack.zig").unpackAdapted;
+pub const unpackAllocate = @import("unpack.zig").unpackAllocate;
+pub const unpackAdaptedAllocate = @import("unpack.zig").unpackAdaptedAllocate;
 
 pub const adapter = @import("adapter/root.zig");
 

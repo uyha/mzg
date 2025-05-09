@@ -155,7 +155,11 @@ pub const Timestamp = struct {
     ) !void {
         return packTimestamp(self, writer);
     }
-    pub fn mzgUnpack(out: *Self, buffer: []const u8) UnpackError!usize {
+    pub fn mzgUnpack(
+        out: *Self,
+        comptime _: anytype,
+        buffer: []const u8,
+    ) UnpackError!usize {
         return unpackTimestamp(out, buffer);
     }
 };

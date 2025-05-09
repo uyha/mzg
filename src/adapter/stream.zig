@@ -1,10 +1,3 @@
-const std = @import("std");
-const mzg = @import("root.zig").mzg;
-const UnpackError = mzg.UnpackError;
-const PackError = mzg.PackError;
-const PackOptions = mzg.PackOptions;
-const StripPointer = @import("../utils.zig").StripPointer;
-
 pub fn StreamPacker(comptime Source: type) type {
     return struct {
         const Self = @This();
@@ -30,25 +23,27 @@ pub fn packStream(in: anytype) StreamPacker(@TypeOf(in)) {
     return .init(in);
 }
 
-pub fn StreamUnpacker(comptime Container: type) type {
+pub fn StreamUnpacker(comptime Out: type) type {
     return struct {
         const Self = @This();
-        container: *Container,
-        allocator: std.mem.Allocator,
+        out: *Out,
 
-        pub fn init(allocator: std.mem.Allocator, container: *Container) Self {
-            return .{ .container = container, .allocator = allocator };
-        }
-
-        pub fn mzgUnpack(self: Self, buffer: []const u8) UnpackError!usize {
+        pub fn mzgUnpackAllocate(
+            self: Self,
+            allocator: Allocator,
+            comptime map: anytype,
+            buffer: []const u8,
+        ) UnpackAllocateError!usize {
             var size: usize = 0;
 
             while (size < buffer.len) {
-                size += mzg.unpack(
+                size += mzg.unpackAdaptedAllocate(
+                    allocator,
+                    map,
                     buffer[size..],
-                    try self.container.addOne(self.allocator),
+                    try self.out.addOne(allocator),
                 ) catch {
-                    _ = self.container.pop();
+                    _ = self.out.pop();
                     return size;
                 };
             }
@@ -57,9 +52,15 @@ pub fn StreamUnpacker(comptime Container: type) type {
     };
 }
 
-pub fn unpackStream(
-    allocator: std.mem.Allocator,
-    out: anytype,
-) StreamUnpacker(StripPointer(@TypeOf(out))) {
-    return .init(allocator, out);
+pub fn unpackStream(out: anytype) StreamUnpacker(StripPointer(@TypeOf(out))) {
+    return .{ .out = out };
 }
+
+const std = @import("std");
+const Allocator = std.mem.Allocator;
+
+const mzg = @import("root.zig").mzg;
+const UnpackAllocateError = mzg.UnpackAllocateError;
+const PackError = mzg.PackError;
+const PackOptions = mzg.PackOptions;
+const StripPointer = @import("../utils.zig").StripPointer;

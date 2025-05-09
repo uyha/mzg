@@ -16,9 +16,10 @@ test "pack and unpack with array adapter" {
 
     var out: std.ArrayListUnmanaged(u32) = .empty;
     defer out.deinit(allocator);
-    _ = try mzg.unpack(
+    _ = try mzg.unpackAllocate(
+        allocator,
         buffer.items,
-        adapter.unpackArray(allocator, &out),
+        adapter.unpackArray(&out),
     );
 
     try t.expectEqualDeep(in, out);

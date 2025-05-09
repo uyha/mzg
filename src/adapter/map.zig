@@ -14,14 +14,14 @@ pub fn MapPacker(comptime Source: type) type {
             writer: anytype,
         ) PackError(@TypeOf(writer))!void {
             const Container = StripPointer(Source);
-            if (comptime meta.hasFn(Container, "count") and meta.hasFn(Container, "iterator")) {
+            if (comptime hasFn(Container, "count") and hasFn(Container, "iterator")) {
                 try mzg.packMap(self.source.count(), writer);
                 var iterator = self.source.iterator();
                 while (iterator.next()) |*kv| {
                     try mzg.packAdaptedWithOptions(kv.key_ptr, options, map, writer);
                     try mzg.packAdaptedWithOptions(kv.value_ptr, options, map, writer);
                 }
-            } else if (comptime meta.hasFn(Container, "keys") and meta.hasFn(Container, "values")) {
+            } else if (comptime hasFn(Container, "keys") and hasFn(Container, "values")) {
                 const keys = self.source.keys();
                 const values = self.source.values();
 
@@ -42,37 +42,34 @@ pub fn packMap(in: anytype) MapPacker(@TypeOf(in)) {
 }
 
 pub const DuplicateFieldBehavior = enum { use_first, @"error", use_last };
-pub fn MapUnpacker(comptime Container: type) type {
+pub fn MapUnpacker(comptime Out: type) type {
     return struct {
         const Self = @This();
-        container: *Container,
-        allocator: std.mem.Allocator,
 
+        out: *Out,
         behavior: DuplicateFieldBehavior,
 
-        pub fn init(
-            allocator: std.mem.Allocator,
-            container: *Container,
-            behavior: DuplicateFieldBehavior,
-        ) Self {
-            return .{
-                .container = container,
-                .allocator = allocator,
-                .behavior = behavior,
-            };
-        }
-
-        pub fn mzgUnpack(self: Self, buffer: []const u8) UnpackError!usize {
+        pub fn mzgUnpackAllocate(
+            self: Self,
+            allocator: Allocator,
+            comptime map: anytype,
+            buffer: []const u8,
+        ) UnpackAllocateError!usize {
             var len: u32 = undefined;
             var size: usize = try mzg.unpackMap(buffer, &len);
 
-            var key: @FieldType(Container.KV, "key") = undefined;
-            var value: @FieldType(Container.KV, "value") = undefined;
+            var key: @FieldType(Out.KV, "key") = undefined;
+            var value: @FieldType(Out.KV, "value") = undefined;
             for (0..len) |_| {
-                size += mzg.unpack(buffer[size..], &key) catch |err| {
+                size += mzg.unpackAdaptedAllocate(
+                    allocator,
+                    map,
+                    buffer[size..],
+                    &key,
+                ) catch |err| {
                     return err;
                 };
-                const result = try self.container.getOrPut(self.allocator, key);
+                const result = try self.out.getOrPut(allocator, key);
                 const target = target: {
                     if (result.found_existing) {
                         switch (self.behavior) {
@@ -85,11 +82,16 @@ pub fn MapUnpacker(comptime Container: type) type {
                     }
                 };
 
-                size += mzg.unpack(buffer[size..], target) catch |err| {
-                    if (std.meta.hasFn(Container, "pop")) {
-                        _ = self.container.pop();
-                    } else if (std.meta.hasFn(Container, "remove")) {
-                        _ = self.container.remove(key);
+                size += mzg.unpackAdaptedAllocate(
+                    allocator,
+                    map,
+                    buffer[size..],
+                    target,
+                ) catch |err| {
+                    if (hasFn(Out, "pop")) {
+                        _ = self.out.pop();
+                    } else if (hasFn(Out, "remove")) {
+                        _ = self.out.remove(key);
                     }
                     return err;
                 };
@@ -99,19 +101,23 @@ pub fn MapUnpacker(comptime Container: type) type {
     };
 }
 
-pub fn unpackMap(
-    allocator: std.mem.Allocator,
-    out: anytype,
-    behavior: DuplicateFieldBehavior,
-) MapUnpacker(StripPointer(@TypeOf(out))) {
-    return .init(allocator, out, behavior);
+pub fn unpackMap(out: anytype) MapUnpacker(StripPointer(@TypeOf(out))) {
+    return .{ .out = out, .behavior = .@"error" };
+}
+pub fn unpackMapFirst(out: anytype) MapUnpacker(StripPointer(@TypeOf(out))) {
+    return .{ .out = out, .behavior = .use_first };
+}
+pub fn unpackMapLast(out: anytype) MapUnpacker(StripPointer(@TypeOf(out))) {
+    return .{ .out = out, .behavior = .use_last };
 }
 
 const std = @import("std");
-const meta = std.meta;
+const hasFn = std.meta.hasFn;
+const Allocator = std.mem.Allocator;
 
 const mzg = @import("root.zig").mzg;
 const UnpackError = mzg.UnpackError;
+const UnpackAllocateError = mzg.UnpackAllocateError;
 const PackError = mzg.PackError;
 const PackOptions = mzg.PackOptions;
 const StripPointer = @import("../utils.zig").StripPointer;

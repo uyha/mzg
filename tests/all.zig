@@ -4,7 +4,7 @@ comptime {
         @import("pack.zig"),
         @import("unpack.zig"),
     }) |target| {
-        t.refAllDeclsRecursive(target);
+        t.refAllDecls(target);
     }
     t.refAllDecls(@import("family/all.zig"));
     t.refAllDecls(@import("adapter/all.zig"));
