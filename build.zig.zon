@@ -1,6 +1,6 @@
 .{
     .name = .mzg,
-    .version = "0.1.0",
+    .version = "0.1.1",
     .fingerprint = 0xb948e4e6d7830c76, // Changing this has security and trust implications.
     .minimum_zig_version = "0.14.0",
     .dependencies = .{},
