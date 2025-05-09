@@ -11,3 +11,6 @@ pub const unpackArray = array.unpackArray;
 const map = @import("map.zig");
 pub const packMap = map.packMap;
 pub const unpackMap = map.unpackMap;
+pub const unpackMapFirst = map.unpackMapFirst;
+pub const unpackMapLast = map.unpackMapLast;
+pub const unpackStaticStringMap = map.unpackStaticStringMap;

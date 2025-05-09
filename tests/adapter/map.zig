@@ -54,11 +54,11 @@ test "pack and unpack StaticStringMap with map adapter" {
     });
     try mzg.pack(adapter.packMap(&in), buffer.writer(allocator));
 
-    var out: std.StringArrayHashMapUnmanaged([]const u8) = .empty;
+    var out: std.StaticStringMap([]const u8) = undefined;
     _ = try mzg.unpackAllocate(
         allocator,
         buffer.items,
-        adapter.unpackMap(&out),
+        adapter.unpackStaticStringMap(&out),
     );
     defer out.deinit(allocator);
 

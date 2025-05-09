@@ -113,6 +113,54 @@ pub fn unpackMapLast(out: anytype) MapUnpacker(StripPointer(@TypeOf(out))) {
     return .{ .out = out, .behavior = .use_last };
 }
 
+pub fn StaticStringMapUnpacker(comptime Out: type) type {
+    return struct {
+        const Self = @This();
+
+        out: *Out,
+
+        pub fn mzgUnpackAllocate(
+            self: Self,
+            allocator: Allocator,
+            comptime map: anytype,
+            buffer: []const u8,
+        ) mzg.UnpackAllocateError!usize {
+            const Key = @FieldType(Out.KV, "key");
+            const Value = @FieldType(Out.KV, "value");
+            const KV = struct { Key, Value };
+
+            var len: usize = undefined;
+            var consumed = try mzg.unpackMap(buffer, &len);
+
+            var kvs = try allocator.alloc(KV, len);
+            defer allocator.free(kvs);
+
+            for (0..len) |i| {
+                consumed += try mzg.unpackAdaptedAllocate(
+                    allocator,
+                    map,
+                    buffer[consumed..],
+                    &kvs[i][0],
+                );
+                consumed += try mzg.unpackAdaptedAllocate(
+                    allocator,
+                    map,
+                    buffer[consumed..],
+                    &kvs[i][1],
+                );
+            }
+
+            self.out.* = try .init(kvs, allocator);
+
+            return consumed;
+        }
+    };
+}
+
+pub fn unpackStaticStringMap(out: anytype) StaticStringMapUnpacker(StripPointer(@TypeOf(out))) {
+    return .{ .out = out };
+}
+
 const std = @import("std");
 const hasFn = std.meta.hasFn;
 const Allocator = std.mem.Allocator;
