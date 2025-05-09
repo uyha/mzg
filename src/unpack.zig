@@ -347,7 +347,7 @@ pub fn unpackAdapted(
     comptime map: anytype,
     buffer: []const u8,
     out: anytype,
-) mzg.UnpackAllocateError!usize {
+) mzg.UnpackError!usize {
     return unpackImpl({}, map, buffer, out);
 }
 
