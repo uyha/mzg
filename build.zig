@@ -35,6 +35,7 @@ pub fn build(b: *std.Build) void {
         "default",
         "map",
         "simple",
+        "stdin",
         "stdout",
         "stream",
     }) |name| {
