@@ -35,6 +35,7 @@ pub fn build(b: *std.Build) void {
         "default",
         "map",
         "simple",
+        "stdout",
         "stream",
     }) |name| {
         const example = b.addExecutable(.{
