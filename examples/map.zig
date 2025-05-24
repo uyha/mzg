@@ -14,9 +14,10 @@ pub fn main() !void {
 
     var targets: std.StringArrayHashMapUnmanaged([]const u8) = .empty;
     defer targets.deinit(allocator);
-    const size = try mzg.unpack(
+    const size = try mzg.unpackAllocate(
+        allocator,
         buffer.items,
-        adapter.unpackMap(&targets, .use_first, allocator),
+        adapter.unpackMap(&targets),
     );
     std.debug.print("Consumed {} bytes\n", .{size});
     var iterator = targets.iterator();

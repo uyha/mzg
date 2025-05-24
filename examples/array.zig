@@ -11,9 +11,10 @@ pub fn main() !void {
 
     var out: std.ArrayListUnmanaged(u32) = .empty;
     defer out.deinit(allocator);
-    const size = try mzg.unpack(
+    const size = try mzg.unpackAllocate(
+        allocator,
         buffer.items,
-        adapter.unpackArray(&out, allocator),
+        adapter.unpackArray(&out),
     );
     std.debug.print("Consumed {} bytes\n", .{size});
     std.debug.print("out: {any}\n", .{out.items});
