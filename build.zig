@@ -5,26 +5,18 @@ pub fn build(b: *std.Build) void {
 
     const optimize = b.standardOptimizeOption(.{});
 
-    const mzg = b.addModule(
-        "mzg",
-        .{
-            .root_source_file = b.path("src/root.zig"),
-            .target = target,
-            .optimize = optimize,
-        },
-    );
-
-    const lib = b.addLibrary(.{
-        .linkage = .static,
+    const lib = b.addStaticLibrary(.{
         .name = "mzg",
-        .root_module = mzg,
+        .root_source_file = b.path("src/root.zig"),
+        .target = target,
+        .optimize = optimize,
     });
     b.installArtifact(lib);
 
     const tests = b.addTest(.{
         .root_source_file = b.path("tests/all.zig"),
     });
-    tests.root_module.addImport("mzg", mzg);
+    tests.root_module.addImport("mzg", lib.root_module);
     const run_tests = b.addRunArtifact(tests);
 
     const test_step = b.step("test", "Run unit tests");
@@ -45,7 +37,7 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
         });
-        example.root_module.addImport("mzg", mzg);
+        example.root_module.addImport("mzg", lib.root_module);
         b.installArtifact(example);
 
         const run_example = b.addRunArtifact(example);
