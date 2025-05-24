@@ -27,7 +27,7 @@ pub fn build(b: *std.Build) void {
     tests.root_module.addImport("mzg", mzg);
     const run_tests = b.addRunArtifact(tests);
 
-    const test_step = b.step("mzg-test", "Run unit tests");
+    const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_tests.step);
 
     inline for (.{
@@ -40,7 +40,7 @@ pub fn build(b: *std.Build) void {
         "stream",
     }) |name| {
         const example = b.addExecutable(.{
-            .name = "mzg-example-" ++ name,
+            .name = name,
             .root_source_file = b.path("examples/" ++ name ++ ".zig"),
             .target = target,
             .optimize = optimize,
@@ -50,8 +50,8 @@ pub fn build(b: *std.Build) void {
 
         const run_example = b.addRunArtifact(example);
         const run_example_step = b.step(
-            "mzg-example-" ++ name,
-            "Run the mzg " ++ name ++ " example",
+            name,
+            "Run the " ++ name ++ " example",
         );
         run_example_step.dependOn(&run_example.step);
     }
@@ -61,7 +61,7 @@ pub fn build(b: *std.Build) void {
         .install_subdir = "docs",
         .source_dir = lib.getEmittedDocs(),
     });
-    const docs_step = b.step("mzg-docs", "Emit documentation");
+    const docs_step = b.step("docs", "Emit documentation");
     docs_step.dependOn(&docs.step);
 
     const format = b.addFmt(.{
@@ -74,10 +74,10 @@ pub fn build(b: *std.Build) void {
             "build.zig.zon",
         },
     });
-    const format_step = b.step("mzg-fmt", "Format project");
+    const format_step = b.step("fmt", "Format project");
     format_step.dependOn(&format.step);
 
-    const all = b.step("mzg-all", "Run all steps");
+    const all = b.step("all", "Run all steps");
     all.dependOn(test_step);
     all.dependOn(docs_step);
     all.dependOn(format_step);
