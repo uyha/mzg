@@ -14,7 +14,7 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(lib);
 
     const tests = b.addTest(.{
-        .root_source_file = b.path("tests/all.zig"),
+        .root_source_file = b.path("test/all.zig"),
     });
     tests.root_module.addImport("mzg", lib.root_module);
     const run_tests = b.addRunArtifact(tests);
@@ -61,7 +61,7 @@ pub fn build(b: *std.Build) void {
         .paths = &.{
             "src/",
             "examples/",
-            "tests/",
+            "test/",
             "build.zig",
             "build.zig.zon",
         },
