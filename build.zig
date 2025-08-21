@@ -5,16 +5,20 @@ pub fn build(b: *std.Build) void {
 
     const optimize = b.standardOptimizeOption(.{});
 
-    const lib = b.addStaticLibrary(.{
-        .name = "mzg",
+    const mzg = b.createModule(.{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
     });
+    const lib = b.addLibrary(.{ .name = "mzg", .root_module = mzg });
     b.installArtifact(lib);
 
     const tests = b.addTest(.{
-        .root_source_file = b.path("test/all.zig"),
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("test/all.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
     tests.root_module.addImport("mzg", lib.root_module);
     const run_tests = b.addRunArtifact(tests);
@@ -33,9 +37,11 @@ pub fn build(b: *std.Build) void {
     }) |name| {
         const example = b.addExecutable(.{
             .name = name,
-            .root_source_file = b.path("examples/" ++ name ++ ".zig"),
-            .target = target,
-            .optimize = optimize,
+            .root_module = b.createModule(.{
+                .root_source_file = b.path("examples/" ++ name ++ ".zig"),
+                .target = target,
+                .optimize = optimize,
+            }),
         });
         example.root_module.addImport("mzg", lib.root_module);
         b.installArtifact(example);

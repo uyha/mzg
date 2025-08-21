@@ -1,8 +1,4 @@
-const builtin = @import("builtin");
-const std = @import("std");
-const utils = @import("../utils.zig");
-
-pub fn packFloat(value: anytype, writer: anytype) @TypeOf(writer).Error!void {
+pub fn packFloat(value: anytype, writer: *Writer) PackError!void {
     const Input = @TypeOf(value);
 
     comptime switch (@typeInfo(Input)) {
@@ -31,9 +27,6 @@ pub fn packFloat(value: anytype, writer: anytype) @TypeOf(writer).Error!void {
         else => unreachable,
     }
 }
-
-const parseFormat = @import("format.zig").parse;
-const UnpackError = @import("../error.zig").UnpackError;
 pub fn unpackFloatWithEndian(
     comptime endian: std.builtin.Endian,
     buffer: []const u8,
@@ -96,3 +89,13 @@ pub fn unpackFloatWithEndian(
 pub fn unpackFloat(buffer: []const u8, out: anytype) UnpackError!usize {
     return unpackFloatWithEndian(comptime builtin.target.cpu.arch.endian(), buffer, out);
 }
+
+const builtin = @import("builtin");
+
+const std = @import("std");
+const Writer = std.io.Writer;
+
+const utils = @import("../utils.zig");
+const parseFormat = @import("format.zig").parse;
+const PackError = @import("../error.zig").PackError;
+const UnpackError = @import("../error.zig").UnpackError;

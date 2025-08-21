@@ -1,5 +1,3 @@
-const UnpackError = @import("../error.zig").UnpackError;
-
 pub const Format = union(enum) {
     array: enum { fix, arr16, arr32 },
     bin: enum { bin8, bin16, bin32 },
@@ -64,3 +62,5 @@ pub fn parse(buffer: []const u8) UnpackError!Format {
         else => UnpackError.FormatUnrecognized,
     };
 }
+
+const UnpackError = @import("../error.zig").UnpackError;

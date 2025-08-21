@@ -1,26 +1,30 @@
-const std = @import("std");
-const t = std.testing;
-const mzg = @import("mzg");
-const adapter = mzg.adapter;
-
 test "pack and unpack with array adapter" {
     const allocator = t.allocator;
-    var buffer: std.ArrayListUnmanaged(u8) = .empty;
-    defer buffer.deinit(t.allocator);
 
-    var in: std.ArrayListUnmanaged(u32) = .empty;
+    var allocWriter: Writer.Allocating = .init(allocator);
+    defer allocWriter.deinit();
+    const writer: *Writer = &allocWriter.writer;
+
+    var in: std.ArrayList(u32) = .empty;
     defer in.deinit(allocator);
     try in.append(allocator, 42);
     try in.append(allocator, 75);
-    try mzg.pack(adapter.packArray(&in), buffer.writer(allocator));
+    try mzg.pack(adapter.packArray(&in), writer);
 
-    var out: std.ArrayListUnmanaged(u32) = .empty;
+    var out: std.ArrayList(u32) = .empty;
     defer out.deinit(allocator);
     _ = try mzg.unpackAllocate(
         allocator,
-        buffer.items,
+        writer.buffer[0..writer.end],
         adapter.unpackArray(&out),
     );
 
     try t.expectEqualDeep(in, out);
 }
+
+const std = @import("std");
+const t = std.testing;
+const Writer = std.Io.Writer;
+
+const mzg = @import("mzg");
+const adapter = mzg.adapter;

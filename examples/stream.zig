@@ -1,9 +1,9 @@
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
-    var buffer: std.ArrayListUnmanaged(u8) = .empty;
+    var buffer: std.ArrayList(u8) = .empty;
     defer buffer.deinit(allocator);
 
-    var in: std.ArrayListUnmanaged(Targets) = .empty;
+    var in: std.ArrayList(Targets) = .empty;
     defer in.deinit(allocator);
     try in.append(allocator, .{ .position = .init(1000), .velocity = .init(50) });
     try in.append(allocator, .{ .position = .init(2000), .velocity = .init(10) });
@@ -13,7 +13,7 @@ pub fn main() !void {
         buffer.writer(allocator),
     );
 
-    var targets: std.ArrayListUnmanaged(Targets) = .empty;
+    var targets: std.ArrayList(Targets) = .empty;
     defer targets.deinit(allocator);
     const size = try mzg.unpackAllocate(
         allocator,

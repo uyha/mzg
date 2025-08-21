@@ -1,14 +1,12 @@
 fn expect(comptime options: PackOptions, expected: anytype, input: anytype) !void {
-    var buffer: std.ArrayListUnmanaged(u8) = .empty;
-    defer buffer.deinit(std.testing.allocator);
+    var allocWriter: Writer.Allocating = .init(t.allocator);
+    defer allocWriter.deinit();
 
-    try mzg.packWithOptions(
-        input,
-        options,
-        buffer.writer(std.testing.allocator),
-    );
+    const writer: *Writer = &allocWriter.writer;
 
-    try std.testing.expectEqualDeep(expected, buffer.items);
+    try mzg.packWithOptions(input, options, writer);
+
+    try std.testing.expectEqualDeep(expected, writer.buffer[0..writer.end]);
 }
 
 test "pack nil" {
@@ -49,7 +47,7 @@ test "pack enum" {
             _: @This(),
             _: mzg.PackOptions,
             comptime _: anytype,
-            writer: anytype,
+            writer: *Writer,
         ) !void {
             try mzg.packInt(1, writer);
         }
@@ -76,7 +74,7 @@ test "pack tagged union" {
             _: @This(),
             _: mzg.PackOptions,
             comptime _: anytype,
-            writer: anytype,
+            writer: *Writer,
         ) !void {
             try mzg.packInt(1, writer);
         }
@@ -118,7 +116,7 @@ test "pack struct" {
             _: @This(),
             _: mzg.PackOptions,
             comptime _: anytype,
-            writer: anytype,
+            writer: *Writer,
         ) !void {
             try mzg.packInt(1, writer);
         }
@@ -184,12 +182,11 @@ test "pack Timestamp" {
 }
 
 test "pack adapted" {
-    const t = std.testing;
     const allocator = t.allocator;
 
-    const String = std.ArrayListUnmanaged(u8);
+    const String = std.ArrayList(u8);
     const Map = std.StringArrayHashMapUnmanaged(String);
-    const Value = std.ArrayListUnmanaged(Map);
+    const Value = std.ArrayList(Map);
 
     var value: Value = .empty;
     defer value.deinit(allocator);
@@ -202,9 +199,9 @@ test "pack adapted" {
     try item.appendSlice(allocator, "value");
     defer item.deinit(allocator);
 
-    var buffer: std.ArrayListUnmanaged(u8) = .empty;
-    defer buffer.deinit(allocator);
-    const writer = buffer.writer(allocator);
+    var allocWriter: Writer.Allocating = .init(allocator);
+    defer allocWriter.deinit();
+    const writer: *Writer = &allocWriter.writer;
 
     try mzg.packAdapted(value, .{
         .{ String, adapter.packArray },
@@ -212,10 +209,13 @@ test "pack adapted" {
         .{ Value, adapter.packArray },
     }, writer);
 
-    try t.expectEqualStrings("\x91\x81\xA3key\x95value", buffer.items);
+    try t.expectEqualStrings("\x91\x81\xA3key\x95value", writer.buffer[0..writer.end]);
 }
 
 const std = @import("std");
+const t = std.testing;
+const Writer = std.Io.Writer;
+
 const mzg = @import("mzg");
 const adapter = mzg.adapter;
 const PackOptions = mzg.PackOptions;

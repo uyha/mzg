@@ -1,25 +1,22 @@
-const std = @import("std");
-const t = std.testing;
-const mzg = @import("mzg");
-const adapter = mzg.adapter;
-
 test "pack and unpack with map adapter" {
     const allocator = t.allocator;
-    var buffer: std.ArrayListUnmanaged(u8) = .empty;
-    defer buffer.deinit(allocator);
+
+    var allocWriter: Writer.Allocating = .init(allocator);
+    defer allocWriter.deinit();
+    const writer: *Writer = &allocWriter.writer;
 
     var in: std.StringArrayHashMapUnmanaged([]const u8) = .empty;
     defer in.deinit(allocator);
     try in.put(allocator, "1", "42");
     try in.put(allocator, "42", "53");
     try in.put(allocator, "53", "1");
-    try mzg.pack(adapter.packMap(&in), buffer.writer(allocator));
+    try mzg.pack(adapter.packMap(&in), writer);
 
     var out: std.StringArrayHashMapUnmanaged([]const u8) = .empty;
     defer out.deinit(allocator);
     _ = try mzg.unpackAllocate(
         allocator,
-        buffer.items,
+        writer.buffer[0..writer.end],
         adapter.unpackMap(&out),
     );
 
@@ -45,19 +42,21 @@ test "unpack with map adapter" {
 
 test "pack and unpack StaticStringMap with map adapter" {
     const allocator = t.allocator;
-    var buffer: std.ArrayListUnmanaged(u8) = .empty;
-    defer buffer.deinit(allocator);
+
+    var allocWriter: Writer.Allocating = .init(allocator);
+    defer allocWriter.deinit();
+    const writer: *Writer = &allocWriter.writer;
 
     var in: std.StaticStringMap([]const u8) = .initComptime(&.{
         .{ "hello", "there" },
         .{ "general", "kenobi" },
     });
-    try mzg.pack(adapter.packMap(&in), buffer.writer(allocator));
+    try mzg.pack(adapter.packMap(&in), writer);
 
     var out: std.StaticStringMap([]const u8) = undefined;
     _ = try mzg.unpackAllocate(
         allocator,
-        buffer.items,
+        writer.buffer[0..writer.end],
         adapter.unpackStaticStringMap(&out),
     );
     defer out.deinit(allocator);
@@ -66,3 +65,10 @@ test "pack and unpack StaticStringMap with map adapter" {
         try t.expectEqualDeep(value, out.get(key).?);
     }
 }
+
+const std = @import("std");
+const t = std.testing;
+const Writer = std.Io.Writer;
+
+const mzg = @import("mzg");
+const adapter = mzg.adapter;

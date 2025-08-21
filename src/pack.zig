@@ -1,6 +1,3 @@
-const mzg = @import("root.zig");
-const std = @import("std");
-
 pub const PackOptions = struct {
     const Self = @This();
 
@@ -65,8 +62,8 @@ pub const PackOptions = struct {
 ///       `pub fn mzgPack(
 ///         self: *@This(),
 ///         options: PackOptions,
-///         writer: anytype,
-///       ) PackError(@TypeOf(writer))!void`,
+///         writer: *Writer,
+///       ) PackError!void`,
 ///       then it is called.
 ///     * If enum is non-exhaustive, it is packed as `int` using its value.
 ///     * Otherwise, if `options.@"enum"` is `.name`, then the name of the enum
@@ -77,8 +74,8 @@ pub const PackOptions = struct {
 ///       `pub fn mzgPack(
 ///         self: *@This(),
 ///         options: PackOptions,
-///         writer: anytype,
-///       ) PackError(@TypeOf(writer))!void`,
+///         writer: *Writer,
+///       ) PackError!void`,
 ///       then it is called.
 ///     * Otherwise, if the union is a tagged union, it is packed as an `array` with 2
 ///       elements, the first being the tag enum, and the second being the actual value
@@ -89,8 +86,8 @@ pub const PackOptions = struct {
 ///       `pub fn mzgPack(
 ///         self: *@This(),
 ///         options: PackOptions,
-///         writer: anytype,
-///       ) PackError(@TypeOf(writer))!void`,
+///         writer: *Writer,
+///       ) PackError!void`,
 ///       then it is called.
 ///     * Otherwise, if it is a tuple, all the fields are packed in an `array` in the
 ///       order they are declared.
@@ -111,8 +108,8 @@ pub fn packAdaptedWithOptions(
     value: anytype,
     options: PackOptions,
     comptime map: anytype,
-    writer: anytype,
-) mzg.PackError(@TypeOf(writer))!void {
+    writer: *Writer,
+) PackError!void {
     const Value = @TypeOf(value);
 
     inline for (map) |entry| {
@@ -325,8 +322,8 @@ pub fn packAdaptedWithOptions(
 pub fn packWithOptions(
     value: anytype,
     options: PackOptions,
-    writer: anytype,
-) mzg.PackError(@TypeOf(writer))!void {
+    writer: *Writer,
+) PackError!void {
     return packAdaptedWithOptions(value, options, comptime .{}, writer);
 }
 
@@ -334,12 +331,18 @@ pub fn packWithOptions(
 pub fn packAdapted(
     value: anytype,
     comptime map: anytype,
-    writer: anytype,
-) mzg.PackError(@TypeOf(writer))!void {
+    writer: *Writer,
+) PackError!void {
     return packAdaptedWithOptions(value, comptime .default, map, writer);
 }
 
 /// Calls `packWithOptions` with `.default` options
-pub fn pack(value: anytype, writer: anytype) mzg.PackError(@TypeOf(writer))!void {
+pub fn pack(value: anytype, writer: *Writer) mzg.PackError!void {
     return packWithOptions(value, comptime .default, writer);
 }
+
+const std = @import("std");
+const Writer = std.Io.Writer;
+
+const mzg = @import("root.zig");
+const PackError = mzg.PackError;

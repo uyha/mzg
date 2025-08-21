@@ -1,10 +1,4 @@
-const builtin = @import("builtin");
-const std = @import("std");
-const utils = @import("../utils.zig");
-
-const PackError = @import("../error.zig").PackError;
-
-pub fn packStr(input: []const u8, writer: anytype) PackError(@TypeOf(writer))!void {
+pub fn packStr(input: []const u8, writer: *Writer) PackError!void {
     const maxInt = std.math.maxInt;
 
     if (input.len > maxInt(u32)) {
@@ -28,8 +22,6 @@ pub fn packStr(input: []const u8, writer: anytype) PackError(@TypeOf(writer))!vo
     try writer.writeAll(input);
 }
 
-const parseFormat = @import("format.zig").parse;
-const UnpackError = @import("../error.zig").UnpackError;
 pub fn unpackStr(buffer: []const u8, out: *[]const u8) UnpackError!usize {
     var len: u32 = undefined;
     var size: usize = try unpackStrLen(buffer, &len);
@@ -79,3 +71,13 @@ pub fn unpackStrLen(buffer: []const u8, out: *u32) UnpackError!usize {
         else => return UnpackError.TypeIncompatible,
     }
 }
+
+const builtin = @import("builtin");
+
+const std = @import("std");
+const Writer = std.Io.Writer;
+
+const utils = @import("../utils.zig");
+const parseFormat = @import("format.zig").parse;
+const PackError = @import("../error.zig").PackError;
+const UnpackError = @import("../error.zig").UnpackError;

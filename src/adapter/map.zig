@@ -11,8 +11,8 @@ pub fn MapPacker(comptime Source: type) type {
             self: Self,
             options: PackOptions,
             comptime map: anytype,
-            writer: anytype,
-        ) PackError(@TypeOf(writer))!void {
+            writer: *Writer,
+        ) PackError!void {
             const Container = StripPointer(Source);
             if (comptime hasFn(Container, "count") and hasFn(Container, "iterator")) {
                 try mzg.packMap(self.source.count(), writer);
@@ -164,6 +164,7 @@ pub fn unpackStaticStringMap(out: anytype) StaticStringMapUnpacker(StripPointer(
 const std = @import("std");
 const hasFn = std.meta.hasFn;
 const Allocator = std.mem.Allocator;
+const Writer = std.io.Writer;
 
 const mzg = @import("root.zig").mzg;
 const UnpackError = mzg.UnpackError;

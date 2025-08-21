@@ -1,10 +1,4 @@
-const builtin = @import("builtin");
-const std = @import("std");
-const utils = @import("../utils.zig");
-
-const PackError = @import("../error.zig").PackError;
-
-pub fn packBin(input: []const u8, writer: anytype) PackError(@TypeOf(writer))!void {
+pub fn packBin(input: []const u8, writer: *Writer) PackError!void {
     const maxInt = std.math.maxInt;
 
     if (input.len > maxInt(u32)) {
@@ -25,8 +19,6 @@ pub fn packBin(input: []const u8, writer: anytype) PackError(@TypeOf(writer))!vo
     try writer.writeAll(input);
 }
 
-const parseFormat = @import("format.zig").parse;
-const UnpackError = @import("../error.zig").UnpackError;
 pub fn unpackBin(buffer: []const u8, out: *[]const u8) UnpackError!usize {
     const readInt = std.mem.readInt;
 
@@ -69,3 +61,13 @@ pub fn unpackBin(buffer: []const u8, out: *[]const u8) UnpackError!usize {
 
     return size;
 }
+
+const builtin = @import("builtin");
+
+const std = @import("std");
+const Writer = std.Io.Writer;
+
+const PackError = @import("../error.zig").PackError;
+const UnpackError = @import("../error.zig").UnpackError;
+const parseFormat = @import("format.zig").parse;
+const utils = @import("../utils.zig");

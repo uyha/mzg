@@ -1,7 +1,3 @@
-const builtin = @import("builtin");
-const std = @import("std");
-const utils = @import("../utils.zig");
-
 // Originally, there was a `behavior` parameter that contains a `priority` field that
 // specifies if the packing procedure should prioritize for the smallest amount of byte
 // written, or skipping the value checks and just write the bytes according to the type
@@ -11,7 +7,7 @@ const utils = @import("../utils.zig");
 // (almost always is). Even when the cost of the writing is 0 (a null writer), no
 // statistically significance is found between the `.size` and `.speed` priority. Hence,
 // the optimization for size is chosen to always be the behavior.
-pub fn packInt(value: anytype, writer: anytype) @TypeOf(writer).Error!void {
+pub fn packInt(value: anytype, writer: *Writer) Writer.Error!void {
     const maxInt = std.math.maxInt;
     const minInt = std.math.minInt;
     const Input = @TypeOf(value);
@@ -52,9 +48,6 @@ pub fn packInt(value: anytype, writer: anytype) @TypeOf(writer).Error!void {
     }
     unreachable;
 }
-
-const parseFormat = @import("format.zig").parse;
-const UnpackError = @import("../error.zig").UnpackError;
 
 pub fn unpackInt(buffer: []const u8, out: anytype) UnpackError!usize {
     const info = @typeInfo(@TypeOf(out));
@@ -117,3 +110,13 @@ fn marker(comptime T: type) u8 {
         else => @compileError(@typeName(T) ++ " cannot be pack as an int"),
     };
 }
+
+const builtin = @import("builtin");
+
+const std = @import("std");
+const Writer = std.io.Writer;
+
+const utils = @import("../utils.zig");
+const parseFormat = @import("format.zig").parse;
+const PackError = @import("../error.zig").PackError;
+const UnpackError = @import("../error.zig").UnpackError;

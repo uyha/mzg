@@ -1,10 +1,4 @@
-const builtin = @import("builtin");
-const std = @import("std");
-const utils = @import("../utils.zig");
-
-const PackError = @import("../error.zig").PackError;
-
-pub fn packMap(size: usize, writer: anytype) PackError(@TypeOf(writer))!void {
+pub fn packMap(size: usize, writer: *Writer) PackError!void {
     const maxInt = std.math.maxInt;
 
     if (size > maxInt(u32)) {
@@ -22,8 +16,6 @@ pub fn packMap(size: usize, writer: anytype) PackError(@TypeOf(writer))!void {
     }
 }
 
-const parseFormat = @import("format.zig").parse;
-const UnpackError = @import("../error.zig").UnpackError;
 pub fn unpackMap(buffer: []const u8, out: anytype) UnpackError!usize {
     const info = @typeInfo(@TypeOf(out));
     if (comptime info != .pointer or info.pointer.size != .one or info.pointer.is_const) {
@@ -74,3 +66,13 @@ pub fn unpackMap(buffer: []const u8, out: anytype) UnpackError!usize {
         else => return UnpackError.TypeIncompatible,
     }
 }
+
+const builtin = @import("builtin");
+
+const std = @import("std");
+const Writer = std.io.Writer;
+
+const utils = @import("../utils.zig");
+const parseFormat = @import("format.zig").parse;
+const PackError = @import("../error.zig").PackError;
+const UnpackError = @import("../error.zig").UnpackError;

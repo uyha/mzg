@@ -11,8 +11,8 @@ pub fn ArrayPacker(comptime Source: type) type {
             self: Self,
             options: PackOptions,
             comptime map: anytype,
-            writer: anytype,
-        ) PackError(@TypeOf(writer))!void {
+            writer: *Writer,
+        ) PackError!void {
             try mzg.packArray(self.source.items.len, writer);
             for (self.source.items) |*item| {
                 try mzg.packAdaptedWithOptions(item, options, map, writer);
@@ -62,6 +62,7 @@ pub fn unpackArray(out: anytype) ArrayUnpacker(StripPointer(@TypeOf(out))) {
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
+const Writer = std.Io.Writer;
 
 const mzg = @import("root.zig").mzg;
 const UnpackError = mzg.UnpackError;

@@ -181,7 +181,7 @@ test "unpack struct" {
 }
 
 test "unpack adapted" {
-    const String = std.ArrayListUnmanaged(u8);
+    const String = std.ArrayList(u8);
     const C = struct {
         a: u32,
         b: ?[]u8,

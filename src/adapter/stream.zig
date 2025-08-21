@@ -11,8 +11,8 @@ pub fn StreamPacker(comptime Source: type) type {
             self: Self,
             options: PackOptions,
             comptime map: anytype,
-            writer: anytype,
-        ) PackError(@TypeOf(writer))!void {
+            writer: *Writer,
+        ) PackError!void {
             for (self.source.items) |*item| {
                 try mzg.packAdaptedWithOptions(item, options, map, writer);
             }
@@ -60,6 +60,7 @@ pub fn unpackStream(out: anytype) StreamUnpacker(StripPointer(@TypeOf(out))) {
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
+const Writer = std.io.Writer;
 
 const mzg = @import("root.zig").mzg;
 const UnpackAllocateError = mzg.UnpackAllocateError;

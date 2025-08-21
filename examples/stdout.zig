@@ -1,6 +1,6 @@
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
-    var buffer: std.ArrayListUnmanaged(u8) = .empty;
+    var buffer: std.ArrayList(u8) = .empty;
     defer buffer.deinit(allocator);
 
     try mzg.pack(

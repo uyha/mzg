@@ -1,9 +1,3 @@
-const mzg = @import("root.zig");
-const UnpackError = mzg.UnpackError;
-const PackError = mzg.PackError;
-const Ext = mzg.Ext;
-const Timestamp = mzg.Timestamp;
-
 pub const Int = union(enum) {
     const Self = @This();
 
@@ -16,7 +10,7 @@ pub const Int = union(enum) {
     i32: i32,
     i64: i64,
 
-    pub fn mzgPack(self: Self, writer: anytype) PackError(@TypeOf(writer))!void {
+    pub fn mzgPack(self: Self, writer: *Writer) PackError!void {
         return switch (self) {
             inline else => |value| mzg.packInt(value, writer),
         };
@@ -52,7 +46,7 @@ pub const Float = union(enum) {
     f32: f32,
     f64: f64,
 
-    pub fn mzgPack(self: Self, writer: anytype) PackError(@TypeOf(writer))!void {
+    pub fn mzgPack(self: Self, writer: *Writer) PackError!void {
         return switch (self) {
             inline else => |value| mzg.packFloat(value, writer),
         };
@@ -89,7 +83,7 @@ pub const Value = union(enum) {
     str: []const u8,
     timestamp: Timestamp,
 
-    pub fn mzgPack(self: Self, writer: anytype) PackError(@TypeOf(writer))!void {
+    pub fn mzgPack(self: Self, writer: *Writer) PackError!void {
         return switch (self) {
             inline else => |value| mzg.pack(value, writer),
         };
@@ -119,3 +113,12 @@ pub const Value = union(enum) {
         return result;
     }
 };
+
+const std = @import("std");
+const Writer = std.io.Writer;
+
+const mzg = @import("root.zig");
+const Ext = mzg.Ext;
+const PackError = mzg.PackError;
+const Timestamp = mzg.Timestamp;
+const UnpackError = mzg.UnpackError;

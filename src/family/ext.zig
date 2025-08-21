@@ -8,14 +8,14 @@ pub const Ext = struct {
         return .{ .type = @"type", .len = len };
     }
 
-    pub fn mzgPack(self: Self, writer: anytype) !void {
+    pub fn mzgPack(self: Self, writer: *Writer) !void {
         return packExt(self, writer);
     }
     pub fn mzgUnpack(self: *Self, buffer: []const u8) UnpackError!usize {
         return unpackExt(self, buffer);
     }
 };
-pub fn packExt(ext: Ext, writer: anytype) @TypeOf(writer).Error!void {
+pub fn packExt(ext: Ext, writer: *Writer) PackError!void {
     const maxInt = std.math.maxInt;
 
     switch (ext.len) {
@@ -151,7 +151,7 @@ pub const Timestamp = struct {
         self: Self,
         _: PackOptions,
         comptime _: anytype,
-        writer: anytype,
+        writer: *Writer,
     ) !void {
         return packTimestamp(self, writer);
     }
@@ -164,7 +164,7 @@ pub const Timestamp = struct {
     }
 };
 
-pub fn packTimestamp(value: Timestamp, writer: anytype) PackError(@TypeOf(writer))!void {
+pub fn packTimestamp(value: Timestamp, writer: *Writer) PackError!void {
     const maxInt = std.math.maxInt;
 
     if (value.nano > 999_999_999) {
@@ -230,10 +230,12 @@ pub fn unpackTimestamp(out: *Timestamp, buffer: []const u8) UnpackError!usize {
 }
 
 const builtin = @import("builtin");
+
 const std = @import("std");
+const Writer = std.io.Writer;
+
 const utils = @import("../utils.zig");
 const parseFormat = @import("format.zig").parse;
-
 const PackError = @import("../error.zig").PackError;
-const UnpackError = @import("../error.zig").UnpackError;
 const PackOptions = @import("../root.zig").PackOptions;
+const UnpackError = @import("../error.zig").UnpackError;
