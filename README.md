@@ -27,7 +27,7 @@ the streaming usage.
 1. Run the following command to add this project as a dependency
 
    ```sh
-   zig fetch --save git+https://github.com/uyha/mzg.git#v0.2.0
+   zig fetch --save git+https://github.com/uyha/mzg.git#v0.2.1
    ```
 
 1. In your `build.zig`, add the following
