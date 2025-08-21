@@ -1,15 +1,17 @@
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
-    var buffer: std.ArrayList(u8) = .empty;
-    defer buffer.deinit(allocator);
+
+    var allocWriter: Writer.Allocating = .init(allocator);
+    defer allocWriter.deinit();
+    const writer: *Writer = &allocWriter.writer;
 
     try mzg.pack(
         Targets{ .position = .init(2000), .velocity = .init(10) },
-        buffer.writer(allocator),
+        writer,
     );
 
     var targets: Targets = undefined;
-    const size = try mzg.unpack(buffer.items, &targets);
+    const size = try mzg.unpack(writer.buffer[0..writer.end], &targets);
 
     std.debug.print("Consumed {} bytes\n", .{size});
     std.debug.print("Targets: {}\n", .{targets});
@@ -33,5 +35,7 @@ const Targets = struct {
 };
 
 const std = @import("std");
+const Writer = std.Io.Writer;
+
 const mzg = @import("mzg");
 const adapter = mzg.adapter;

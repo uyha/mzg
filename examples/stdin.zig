@@ -1,7 +1,7 @@
 pub fn main() !void {
     var buffer: [64]u8 = @splat(0);
 
-    const size = try std.io.getStdIn().read(&buffer);
+    const size = try stdin().read(&buffer);
 
     var entry: Entry = undefined;
 
@@ -14,6 +14,8 @@ pub fn main() !void {
 }
 
 const std = @import("std");
+const stdin = std.fs.File.stdin;
+
 const mzg = @import("mzg");
 
 const Entry = struct {

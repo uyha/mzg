@@ -1,7 +1,9 @@
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
-    var buffer: std.ArrayList(u8) = .empty;
-    defer buffer.deinit(allocator);
+
+    var allocWriter: Writer.Allocating = .init(allocator);
+    defer allocWriter.deinit();
+    const writer: *Writer = &allocWriter.writer;
 
     std.debug.print("Map un/packing\n", .{});
 
@@ -10,13 +12,13 @@ pub fn main() !void {
     try prison.put(allocator, "1", "42");
     try prison.put(allocator, "42", "53");
     try prison.put(allocator, "53", "1");
-    try mzg.pack(adapter.packMap(&prison), buffer.writer(allocator));
+    try mzg.pack(adapter.packMap(&prison), writer);
 
     var targets: std.StringArrayHashMapUnmanaged([]const u8) = .empty;
     defer targets.deinit(allocator);
     const size = try mzg.unpackAllocate(
         allocator,
-        buffer.items,
+        writer.buffer[0..writer.end],
         adapter.unpackMap(&targets),
     );
     std.debug.print("Consumed {} bytes\n", .{size});
@@ -27,5 +29,7 @@ pub fn main() !void {
 }
 
 const std = @import("std");
+const Writer = std.Io.Writer;
+
 const mzg = @import("mzg");
 const adapter = mzg.adapter;
