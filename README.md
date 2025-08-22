@@ -92,21 +92,25 @@ Converting a byte slice to MessagePack and back
 ```zig
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
-    var buffer: std.ArrayListUnmanaged(u8) = .empty;
-    defer buffer.deinit(allocator);
+
+    var allocWriter: Writer.Allocating = .init(allocator);
+    defer allocWriter.deinit();
+    const writer: *Writer = &allocWriter.writer;
 
     try mzg.pack(
         "a string with some characters for demonstration purpose",
-        buffer.writer(allocator),
+        writer,
     );
 
     var string: []const u8 = undefined;
-    const size = try mzg.unpack(buffer.items, &string);
+    const size = try mzg.unpack(writer.buffer[0..writer.end], &string);
     std.debug.print("Consumed {} bytes\n", .{size});
     std.debug.print("string: {s}\n", .{string});
 }
 
 const std = @import("std");
+const Writer = std.Io.Writer;
+
 const mzg = @import("mzg");
 ```
 
@@ -118,16 +122,18 @@ Certain types can be packed and unpacked by default (refer to
 ```zig
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
-    var buffer: std.ArrayListUnmanaged(u8) = .empty;
-    defer buffer.deinit(allocator);
+
+    var allocWriter: Writer.Allocating = .init(allocator);
+    defer allocWriter.deinit();
+    const writer: *Writer = &allocWriter.writer;
 
     try mzg.pack(
         Targets{ .position = .init(2000), .velocity = .init(10) },
-        buffer.writer(allocator),
+        writer,
     );
 
     var targets: Targets = undefined;
-    const size = try mzg.unpack(buffer.items, &targets);
+    const size = try mzg.unpack(writer.buffer[0..writer.end], &targets);
 
     std.debug.print("Consumed {} bytes\n", .{size});
     std.debug.print("Targets: {}\n", .{targets});
@@ -151,6 +157,8 @@ const Targets = struct {
 };
 
 const std = @import("std");
+const Writer = std.Io.Writer;
+
 const mzg = @import("mzg");
 const adapter = mzg.adapter;
 ```
@@ -163,26 +171,31 @@ default, but the adapter functions make it easy to work with these types.
 ```zig
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
-    var buffer: std.ArrayListUnmanaged(u8) = .empty;
-    defer buffer.deinit(allocator);
 
-    var in: std.ArrayListUnmanaged(u32) = .empty;
+    var allocWriter: Writer.Allocating = .init(allocator);
+    defer allocWriter.deinit();
+    const writer: *Writer = &allocWriter.writer;
+
+    var in: std.ArrayList(u32) = .empty;
     defer in.deinit(allocator);
     try in.append(allocator, 42);
     try in.append(allocator, 75);
-    try mzg.pack(adapter.packArray(&in), buffer.writer(allocator));
+    try mzg.pack(adapter.packArray(&in), writer);
 
-    var out: std.ArrayListUnmanaged(u32) = .empty;
+    var out: std.ArrayList(u32) = .empty;
     defer out.deinit(allocator);
-    const size = try mzg.unpack(
-        buffer.items,
-        adapter.unpackArray(&out, allocator),
+    const size = try mzg.unpackAllocate(
+        allocator,
+        writer.buffer[0..writer.end],
+        adapter.unpackArray(&out),
     );
     std.debug.print("Consumed {} bytes\n", .{size});
     std.debug.print("out: {any}\n", .{out.items});
 }
 
 const std = @import("std");
+const Writer = std.Io.Writer;
+
 const mzg = @import("mzg");
 const adapter = mzg.adapter;
 ```
@@ -231,7 +244,7 @@ const adapter = mzg.adapter;
 #### Packing
 
 When an enum/union/struct has an `mzgPack` function that returns
-`mzg.PackError(@TypeOf(writer))!void` can be called with
+`mzg.PackError!void` can be called with
 
 ```zig
 // Value cares about the options passed by the caller
@@ -244,7 +257,7 @@ With the arguments being
 - `options` is `mzg.PackOptions`.
 - `map` is a tuple of 2 element tuples whose 1st element being a type and 2nd
   element being a packing adapter function.
-- `writer` is `anytype` that can be called with `writer.writeAll(&[_]u8{});`.
+- `writer` is `std.Io.Writer`.
 
 The function will be called when the `mzg.pack` function is used.
 
@@ -258,8 +271,8 @@ When an enum/union/struct has
   out.mzgUnpack(map, buffer);
   ```
 
-- `mzgUnpackAllocate` function that returns `UnpackError!usize` and can be
-  called with
+- `mzgUnpackAllocate` function that returns `UnpackAllocateError!usize` and can
+  be called with
 
   ```zig
   out.mzgUnpackAllocate(allocator, map, buffer);
