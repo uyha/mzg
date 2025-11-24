@@ -13,7 +13,7 @@ pub fn unpackNil(buffer: []const u8, out: *void) UnpackError!usize {
 }
 
 const std = @import("std");
-const Writer = std.io.Writer;
+const Writer = std.Io.Writer;
 
 const utils = @import("../utils.zig");
 const parseFormat = @import("format.zig").parse;

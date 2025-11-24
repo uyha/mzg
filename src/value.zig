@@ -115,7 +115,7 @@ pub const Value = union(enum) {
 };
 
 const std = @import("std");
-const Writer = std.io.Writer;
+const Writer = std.Io.Writer;
 
 const mzg = @import("root.zig");
 const Ext = mzg.Ext;

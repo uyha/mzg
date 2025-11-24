@@ -164,7 +164,7 @@ pub fn unpackStaticStringMap(out: anytype) StaticStringMapUnpacker(StripPointer(
 const std = @import("std");
 const hasFn = std.meta.hasFn;
 const Allocator = std.mem.Allocator;
-const Writer = std.io.Writer;
+const Writer = std.Io.Writer;
 
 const mzg = @import("root.zig").mzg;
 const UnpackError = mzg.UnpackError;

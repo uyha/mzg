@@ -114,7 +114,7 @@ fn marker(comptime T: type) u8 {
 const builtin = @import("builtin");
 
 const std = @import("std");
-const Writer = std.io.Writer;
+const Writer = std.Io.Writer;
 
 const utils = @import("../utils.zig");
 const parseFormat = @import("format.zig").parse;

@@ -60,7 +60,7 @@ pub fn unpackStream(out: anytype) StreamUnpacker(StripPointer(@TypeOf(out))) {
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const Writer = std.io.Writer;
+const Writer = std.Io.Writer;
 
 const mzg = @import("root.zig").mzg;
 const UnpackAllocateError = mzg.UnpackAllocateError;

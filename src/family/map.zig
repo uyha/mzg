@@ -70,7 +70,7 @@ pub fn unpackMap(buffer: []const u8, out: anytype) UnpackError!usize {
 const builtin = @import("builtin");
 
 const std = @import("std");
-const Writer = std.io.Writer;
+const Writer = std.Io.Writer;
 
 const utils = @import("../utils.zig");
 const parseFormat = @import("format.zig").parse;
