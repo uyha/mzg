@@ -11,10 +11,10 @@ pub const UnpackError = error{
     ValueInvalid,
 };
 
-pub const UnpackAllocateError = UnpackError || error{
-    /// This error is never thrown with the default unpacking, but it is here to
-    /// let custom unpacking return memory error when it cannot allocate memory.
-    OutOfMemory,
-};
+/// `Allocator.Error` is never thrown with the default unpacking, but it is here to
+/// let custom unpacking return memory error when it cannot allocate memory.
+pub const UnpackAllocateError = UnpackError || Allocator.Error;
 
-const Writer = @import("std").Io.Writer;
+const std = @import("std");
+const Writer = std.Io.Writer;
+const Allocator = std.mem.Allocator;

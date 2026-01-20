@@ -120,30 +120,16 @@ fn unpackImpl(
             switch (try mzg.format.parse(buffer)) {
                 .int => {
                     var raw: E.tag_type = undefined;
-                    const size = try unpackImpl(
-                        allocator,
-                        map,
-                        buffer,
-                        &raw,
-                    );
-                    out.* = std.meta.intToEnum(
-                        Child,
-                        raw,
-                    ) catch return mzg.UnpackError.ValueInvalid;
+                    const size = try unpackImpl(allocator, map, buffer, &raw);
+                    out.* = std.enums.fromInt(Child, raw) orelse
+                        return mzg.UnpackError.ValueInvalid;
                     return size;
                 },
                 .str => {
                     var view: []const u8 = undefined;
-                    const size = try unpackImpl(
-                        allocator,
-                        map,
-                        buffer,
-                        &view,
-                    );
-                    out.* = std.meta.stringToEnum(
-                        Child,
-                        view,
-                    ) orelse return mzg.UnpackError.ValueInvalid;
+                    const size = try unpackImpl(allocator, map, buffer, &view);
+                    out.* = std.meta.stringToEnum(Child, view) orelse
+                        return mzg.UnpackError.ValueInvalid;
                     return size;
                 },
                 else => return mzg.UnpackError.TypeIncompatible,
