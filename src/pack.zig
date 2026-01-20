@@ -18,8 +18,8 @@ pub const PackOptions = struct {
     pub const default: Self = .{};
     /// Like `default` but pack byte slice as `bin` instead of `str`.
     pub const bin: Self = .{ .byte_slice = .bin };
-    /// Pack enums and errors as strings. Pack structs as maps with field names being
-    /// the keys, and null fields are skipped.
+    /// Pack enums as strings. Pack structs as maps with field names being the keys, and
+    /// null fields are skipped.
     pub const stringly: Self = .{
         .byte_slice = .str,
         .@"enum" = .name,
@@ -254,16 +254,6 @@ pub fn packAdaptedWithOptions(
                         );
                     }
                 },
-            }
-        },
-        .error_union => {
-            if (value) |payload| {
-                try mzg.packArray(writer, 2);
-                try mzg.packInt(writer, 0);
-                try packAdaptedWithOptions(payload, options, map, writer);
-            } else |err| {
-                try mzg.packArray(writer, 1);
-                try packAdaptedWithOptions(err, options, map, writer);
             }
         },
         .pointer => |ptr| switch (ptr.size) {
