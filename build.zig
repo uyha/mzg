@@ -26,15 +26,15 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_tests.step);
 
-    inline for (.{
+    const examples = .{
         "array",
         "default",
         "map",
         "simple",
-        "stdin",
-        "stdout",
         "stream",
-    }) |name| {
+    } ++ if (builtin.zig_version.minor < 16) .{ "stdin", "stdout" } else .{};
+
+    inline for (examples) |name| {
         const example = b.addExecutable(.{
             .name = name,
             .root_module = b.createModule(.{
@@ -80,3 +80,5 @@ pub fn build(b: *std.Build) void {
     all.dependOn(docs_step);
     all.dependOn(format_step);
 }
+
+const builtin = @import("builtin");
