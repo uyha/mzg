@@ -172,11 +172,11 @@ pub fn packTimestamp(value: Timestamp, writer: *Writer) PackError!void {
     }
 
     if (value.nano == 0 and 0 <= value.sec and value.sec <= maxInt(u32)) {
-        var content = [_]u8{ 0xD6, 0xFF } ++ [1]u8{0} ** 4;
+        var content = [_]u8{ 0xD6, 0xFF } ++ @as([4]u8, @splat(0));
         std.mem.writeInt(u32, content[2..], @intCast(value.sec), .big);
         try writer.writeAll(&content);
     } else if (0 <= value.sec and value.sec <= maxInt(u34)) {
-        var content = [_]u8{ 0xD7, 0xFF } ++ [1]u8{0} ** 8;
+        var content = [_]u8{ 0xD7, 0xFF } ++ @as([8]u8, @splat(0));
         std.mem.writeInt(
             u64,
             content[2..],
@@ -185,7 +185,7 @@ pub fn packTimestamp(value: Timestamp, writer: *Writer) PackError!void {
         );
         try writer.writeAll(&content);
     } else {
-        var content = [_]u8{ 0xC7, 0x0C, 0xFF } ++ [1]u8{0} ** 12;
+        var content = [_]u8{ 0xC7, 0x0C, 0xFF } ++ @as([12]u8, @splat(0));
         std.mem.writeInt(u32, content[3..7], value.nano, .big);
         std.mem.writeInt(i64, content[7..], value.sec, .big);
         try writer.writeAll(&content);

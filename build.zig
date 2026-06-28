@@ -65,11 +65,11 @@ pub fn build(b: *std.Build) void {
     const format = b.addFmt(.{
         .check = true,
         .paths = &.{
-            "src/",
-            "examples/",
-            "test/",
-            "build.zig",
-            "build.zig.zon",
+            b.path("src/"),
+            b.path("examples/"),
+            b.path("test/"),
+            b.path("build.zig"),
+            b.path("build.zig.zon"),
         },
     });
     const format_step = b.step("fmt", "Format project");

@@ -14,7 +14,7 @@ pub fn expect(
 
     const packer_info = @typeInfo(@TypeOf(packer)).@"fn";
 
-    const returned = switch (packer_info.params.len) {
+    const returned = switch (packer_info.param_types.len) {
         1 => @call(.auto, packer, .{writer}),
         2 => @call(.auto, packer, .{ input, writer }),
         else => @compileError("WTF"),

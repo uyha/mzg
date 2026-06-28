@@ -141,7 +141,7 @@ pub fn packAdaptedWithOptions(
             if (std.meta.hasFn(Value, "mzgPack")) {
                 return value.mzgPack(options, map, writer);
             }
-            if (!info.is_exhaustive) {
+            if (info.mode == .nonexhaustive) {
                 return mzg.packInt(@intFromEnum(value), writer);
             }
             switch (options.@"enum") {
@@ -177,10 +177,10 @@ pub fn packAdaptedWithOptions(
                 return value.mzgPack(options, map, writer);
             }
             if (info.is_tuple) {
-                try mzg.packArray(info.fields.len, writer);
-                inline for (info.fields) |field| {
+                try mzg.packArray(info.field_names.len, writer);
+                inline for (info.field_names) |name| {
                     try packAdaptedWithOptions(
-                        @field(value, field.name),
+                        @field(value, name),
                         options,
                         map,
                         writer,
@@ -197,10 +197,10 @@ pub fn packAdaptedWithOptions(
 
             switch (options.@"struct") {
                 .array => {
-                    try mzg.packArray(info.fields.len, writer);
-                    inline for (info.fields) |field| {
+                    try mzg.packArray(info.field_names.len, writer);
+                    inline for (info.field_names) |name| {
                         try packAdaptedWithOptions(
-                            @field(value, field.name),
+                            @field(value, name),
                             options,
                             map,
                             writer,
@@ -209,9 +209,9 @@ pub fn packAdaptedWithOptions(
                 },
                 .map => {
                     var non_null_len: usize = 0;
-                    inline for (info.fields) |field| {
-                        if (@typeInfo(field.type) == .optional) {
-                            if (@field(value, field.name) != null) {
+                    inline for (info.field_names, info.field_types) |name, field_type| {
+                        if (@typeInfo(field_type) == .optional) {
+                            if (@field(value, name) != null) {
                                 non_null_len += 1;
                             }
                         } else {
@@ -220,21 +220,21 @@ pub fn packAdaptedWithOptions(
                     }
 
                     try mzg.packMap(non_null_len, writer);
-                    inline for (info.fields) |field| {
-                        if (@typeInfo(field.type) == .optional) {
-                            if (@field(value, field.name) != null) {
-                                try mzg.packStr(field.name, writer);
+                    inline for (info.field_names, info.field_types) |name, field_type| {
+                        if (@typeInfo(field_type) == .optional) {
+                            if (@field(value, name) != null) {
+                                try mzg.packStr(name, writer);
                                 try packAdaptedWithOptions(
-                                    @field(value, field.name),
+                                    @field(value, name),
                                     options,
                                     map,
                                     writer,
                                 );
                             }
                         } else {
-                            try mzg.packStr(field.name, writer);
+                            try mzg.packStr(name, writer);
                             try packAdaptedWithOptions(
-                                @field(value, field.name),
+                                @field(value, name),
                                 options,
                                 map,
                                 writer,
@@ -243,11 +243,11 @@ pub fn packAdaptedWithOptions(
                     }
                 },
                 .full_map => {
-                    try mzg.packMap(info.fields.len, writer);
-                    inline for (info.fields) |field| {
-                        try mzg.packStr(field.name, writer);
+                    try mzg.packMap(info.field_names.len, writer);
+                    inline for (info.field_names) |name| {
+                        try mzg.packStr(name, writer);
                         try packAdaptedWithOptions(
-                            @field(value, field.name),
+                            @field(value, name),
                             options,
                             map,
                             writer,

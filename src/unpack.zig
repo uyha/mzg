@@ -76,7 +76,10 @@ fn unpackImpl(
         ),
     }
 
-    if (comptime info != .pointer or info.pointer.size != .one or info.pointer.is_const) {
+    if (comptime info != .pointer or
+        info.pointer.size != .one or
+        info.pointer.attrs.@"const")
+    {
         @compileError(
             "`out` has to be a mutable singe-item pointer not " ++ @typeName(Out),
         );
@@ -180,14 +183,14 @@ fn unpackImpl(
                 &tag,
             );
 
-            inline for (child.fields) |field| {
-                if (std.mem.eql(u8, field.name, @tagName(tag))) {
-                    out.* = @unionInit(Child, field.name, undefined);
+            inline for (child.field_names) |name| {
+                if (std.mem.eql(u8, name, @tagName(tag))) {
+                    out.* = @unionInit(Child, name, undefined);
                     size += try unpackImpl(
                         allocator,
                         map,
                         buffer[size..],
-                        &@field(out.*, field.name),
+                        &@field(out.*, name),
                     );
                     return size;
                 }
@@ -220,10 +223,10 @@ fn unpackImpl(
                     ),
                     else => return mzg.UnpackError.TypeIncompatible,
                 }
-                if (len != child.fields.len) {
+                if (len != child.field_names.len) {
                     return mzg.UnpackError.TypeIncompatible;
                 }
-                inline for (0..child.fields.len) |i| {
+                inline for (0..child.field_names.len) |i| {
                     size += try unpackImpl(
                         allocator,
                         map,
@@ -251,16 +254,16 @@ fn unpackImpl(
                         buffer,
                         &len,
                     );
-                    if (len != child.fields.len) {
+                    if (len != child.field_names.len) {
                         return mzg.UnpackError.TypeIncompatible;
                     }
 
-                    inline for (0..child.fields.len) |i| {
+                    inline for (child.field_names) |name| {
                         size += try unpackImpl(
                             allocator,
                             map,
                             buffer[size..],
-                            &@field(out.*, child.fields[i].name),
+                            &@field(out.*, name),
                         );
                     }
                 },
@@ -281,13 +284,13 @@ fn unpackImpl(
                             &name,
                         );
 
-                        inline for (child.fields) |field| {
-                            if (std.mem.eql(u8, field.name, name)) {
+                        inline for (child.field_names) |field_name| {
+                            if (std.mem.eql(u8, field_name, name)) {
                                 size += try unpackImpl(
                                     allocator,
                                     map,
                                     buffer[size..],
-                                    &@field(out.*, field.name),
+                                    &@field(out.*, field_name),
                                 );
                                 break;
                             }

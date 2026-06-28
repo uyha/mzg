@@ -16,7 +16,7 @@ pub fn header(
     marker: u8,
     value: Value,
 ) [1 + @sizeOf(Value)]u8 {
-    var content = [1]u8{marker} ++ [1]u8{0} ** @sizeOf(Value);
+    var content = [1]u8{marker} ++ @as([@sizeOf(Value)]u8, @splat(0));
     std.mem.writeInt(Value, content[1..], value, .big);
     return content;
 }

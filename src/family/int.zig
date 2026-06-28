@@ -51,7 +51,10 @@ pub fn packInt(value: anytype, writer: *Writer) Writer.Error!void {
 
 pub fn unpackInt(buffer: []const u8, out: anytype) UnpackError!usize {
     const info = @typeInfo(@TypeOf(out));
-    if (comptime info != .pointer or info.pointer.size != .one or info.pointer.is_const) {
+    if (comptime info != .pointer or
+        info.pointer.size != .one or
+        info.pointer.attrs.@"const")
+    {
         @compileError("`out` has to be a pointer to an int");
     }
 

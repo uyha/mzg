@@ -33,7 +33,10 @@ pub fn unpackFloatWithEndian(
     out: anytype,
 ) UnpackError!usize {
     const info = @typeInfo(@TypeOf(out));
-    if (comptime info != .pointer or info.pointer.size != .one or info.pointer.is_const) {
+    if (comptime info != .pointer or
+        info.pointer.size != .one or
+        info.pointer.attrs.@"const")
+    {
         @compileError("`out` has to be a mutable singe-item pointer");
     }
     switch (@typeInfo(info.pointer.child)) {
